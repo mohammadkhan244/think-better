@@ -13,49 +13,73 @@ function extractVideoId(url: string): string | null {
   return null
 }
 
-async function fetchTranscript(videoId: string): Promise<string> {
-  // Use YouTube's internal Innertube API (same as the YouTube mobile app).
-  // The ANDROID client bypasses consent/bot checks and returns full caption data.
-  const res = await fetch(
-    'https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getPlayerData(videoId: string): Promise<any> {
+  const clients = [
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        context: {
-          client: {
-            clientName: 'ANDROID',
-            clientVersion: '17.31.35',
-            androidSdkVersion: 30,
-          },
+      key: 'AIzaSyDCU8hByM-4DrUqRExfe-42miAWjlTzZUA',
+      context: {
+        client: { clientName: 'TVHTML5_SIMPLY_EMBEDDED_PLAYER', clientVersion: '2.0' },
+        thirdParty: { embedUrl: 'https://www.youtube.com/' },
+      },
+    },
+    {
+      key: 'AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc',
+      context: {
+        client: {
+          clientName: 'IOS',
+          clientVersion: '19.29.1',
+          deviceModel: 'iPhone16,2',
+          osName: 'iPhone',
+          osVersion: '17.5.1.21F90',
         },
-        videoId,
-      }),
+      },
+    },
+    {
+      key: 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+      context: {
+        client: {
+          clientName: 'ANDROID',
+          clientVersion: '19.29.37',
+          androidSdkVersion: 34,
+        },
+      },
+    },
+  ]
+
+  for (const client of clients) {
+    try {
+      const res = await fetch(
+        `https://www.youtube.com/youtubei/v1/player?key=${client.key}&prettyPrint=false`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ context: client.context, videoId }),
+        }
+      )
+      if (!res.ok) continue
+      const data = await res.json()
+      const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks
+      if (tracks && tracks.length > 0) return data
+    } catch {
+      // try next client
     }
-  )
-
-  if (!res.ok) throw new Error(`Innertube request failed: ${res.status}`)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data: any = await res.json()
-  const captionTracks =
-    data?.captions?.playerCaptionsTracklistRenderer?.captionTracks
-
-  if (!captionTracks || captionTracks.length === 0) {
-    throw new Error('No captions available for this video')
   }
 
-  // Prefer English captions, fall back to first track
+  throw new Error('No captions available for this video')
+}
+
+async function fetchTranscript(videoId: string): Promise<string> {
+  const data = await getPlayerData(videoId)
+
+  const captionTracks = data.captions.playerCaptionsTracklistRenderer.captionTracks
   const track =
-    captionTracks.find((t: { languageCode: string }) =>
-      t.languageCode.startsWith('en')
-    ) ?? captionTracks[0]
+    captionTracks.find((t: { languageCode: string }) => t.languageCode.startsWith('en')) ??
+    captionTracks[0]
 
-  const captionUrl: string = track.baseUrl
-  if (!captionUrl) throw new Error('No caption URL found')
+  if (!track?.baseUrl) throw new Error('No caption URL found')
 
-  // Fetch as JSON3 format (cleaner than XML)
-  const captionRes = await fetch(captionUrl + '&fmt=json3')
+  const captionRes = await fetch(track.baseUrl + '&fmt=json3')
   if (!captionRes.ok) throw new Error(`Caption fetch failed: ${captionRes.status}`)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,7 +117,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ text })
   } catch (err) {
     const message = err instanceof Error ? err.message : ''
-    if (message.includes('No captions') || message.includes('No caption URL')) {
+    if (message.includes('No captions')) {
       return NextResponse.json(
         { error: 'This video does not have captions/subtitles available.' },
         { status: 422 }
