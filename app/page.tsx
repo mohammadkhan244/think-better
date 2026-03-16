@@ -86,12 +86,18 @@ export default function Home() {
           <p className="font-mono text-xs text-[#888880] tracking-widest uppercase mb-6">
             Not what to think — how to think.
           </p>
-          <div className="border-l-2 border-[#2e2e2e] pl-4 space-y-2">
-            <p className="text-sm font-mono text-[#666660] leading-relaxed">
-              Most of us were never taught to reason well — only to sound confident. This tool scores any argument, article, or conversation across seven dimensions of rigorous thinking, then shows you exactly where the logic breaks down and how to sharpen it.
+          <div className="border-l-2 border-[#2e2e2e] pl-4 space-y-3">
+            <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed">
+              We were never taught to reason well, only to sound confident.
             </p>
-            <p className="text-sm font-mono text-[#444440] leading-relaxed">
-              Paste text, upload a PDF, drop an article link, or pull a YouTube transcript. You will get a FLOATER scorecard, detected biases and fallacies with quotes from the source, specific improvement steps, and Socratic questions to stress-test the reasoning further.
+            <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed">
+              This tool scores any argument, article, or conversation across seven dimensions of rigorous thinking, then shows you exactly where the logic breaks down and how to sharpen it.
+            </p>
+            <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed">
+              Paste text, upload a PDF, drop an article link, or pull a YouTube transcript.
+            </p>
+            <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed">
+              You will get a FLOATER scorecard, detected biases and fallacies with quotes from the source, specific improvement steps, and Socratic questions to stress-test the reasoning further.
             </p>
           </div>
         </header>
