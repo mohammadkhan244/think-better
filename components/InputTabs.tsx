@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 
-type Tab = 'text' | 'pdf' | 'youtube'
+type Tab = 'text' | 'pdf' | 'youtube' | 'article'
 
 interface InputTabsProps {
   onAnalyze: (text: string, sourceType: Tab) => void
@@ -24,21 +24,28 @@ export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
   const [youtubeText, setYoutubeText] = useState('')
   const [youtubeLoading, setYoutubeLoading] = useState(false)
   const [youtubeError, setYoutubeError] = useState('')
+  const [articleUrl, setArticleUrl] = useState('')
+  const [articleText, setArticleText] = useState('')
+  const [articleTitle, setArticleTitle] = useState('')
+  const [articleLoading, setArticleLoading] = useState(false)
+  const [articleError, setArticleError] = useState('')
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const currentWordCount = activeTab === 'text'
-    ? countWords(textValue)
-    : activeTab === 'pdf'
-    ? countWords(pdfText)
-    : countWords(youtubeText)
+  const currentWordCount =
+    activeTab === 'text' ? countWords(textValue)
+    : activeTab === 'pdf' ? countWords(pdfText)
+    : activeTab === 'youtube' ? countWords(youtubeText)
+    : countWords(articleText)
 
-  const canAnalyze = currentWordCount >= 50 && !isLoading && !pdfLoading && !youtubeLoading
+  const canAnalyze =
+    currentWordCount >= 50 && !isLoading && !pdfLoading && !youtubeLoading && !articleLoading
 
   const getCurrentText = () => {
     if (activeTab === 'text') return textValue
     if (activeTab === 'pdf') return pdfText
-    return youtubeText
+    if (activeTab === 'youtube') return youtubeText
+    return articleText
   }
 
   const handlePdfFile = async (file: File) => {
@@ -92,12 +99,41 @@ export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
     }
   }
 
+  const handleArticleExtract = async () => {
+    setArticleError('')
+    setArticleLoading(true)
+    setArticleText('')
+    setArticleTitle('')
+    try {
+      const res = await fetch('/api/extract-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: articleUrl }),
+      })
+      const data = await res.json()
+      if (data.error) setArticleError(data.error)
+      else {
+        setArticleText(data.text)
+        setArticleTitle(data.title ?? '')
+      }
+    } catch {
+      setArticleError('Failed to fetch article.')
+    } finally {
+      setArticleLoading(false)
+    }
+  }
+
+  const isValidUrl = (url: string) => {
+    try { new URL(url); return true } catch { return false }
+  }
+
   const isValidYoutubeUrl = (url: string) =>
     /youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\//.test(url)
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'text', label: 'Text' },
     { id: 'pdf', label: 'PDF' },
+    { id: 'article', label: 'Article' },
     { id: 'youtube', label: 'YouTube' },
   ]
 
@@ -166,6 +202,57 @@ export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
               )}
             </div>
             {pdfError && <p className="text-xs font-mono text-[#c0392b]">{pdfError}</p>}
+          </div>
+        )}
+
+        {activeTab === 'article' && (
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <input
+                type="url"
+                className="flex-1 bg-transparent border border-[#2e2e2e] text-[#e8e8e0] font-mono text-sm px-3 py-2 outline-none focus:border-[#c8a84b] placeholder-[#444440]"
+                placeholder="https://example.com/article..."
+                value={articleUrl}
+                onChange={(e) => {
+                  setArticleUrl(e.target.value)
+                  setArticleText('')
+                  setArticleTitle('')
+                  setArticleError('')
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && isValidUrl(articleUrl) && !articleLoading) handleArticleExtract()
+                }}
+              />
+              <button
+                onClick={handleArticleExtract}
+                disabled={!isValidUrl(articleUrl) || articleLoading}
+                className="px-4 py-2 text-xs font-mono border border-[#2e2e2e] text-[#888880] hover:border-[#c8a84b] hover:text-[#c8a84b] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                {articleLoading ? 'Loading...' : 'Extract'}
+              </button>
+            </div>
+            {articleError && (
+              <div className="space-y-2">
+                <p className="text-xs font-mono text-[#c0392b]">{articleError}</p>
+                <p className="text-xs font-mono text-[#444440]">
+                  If the article is paywalled, copy the text and paste it into the{' '}
+                  <button onClick={() => setActiveTab('text')} className="text-[#c8a84b] underline">
+                    Text tab
+                  </button>
+                  .
+                </p>
+              </div>
+            )}
+            {articleText && (
+              <div>
+                {articleTitle && (
+                  <p className="text-xs font-mono text-[#c8a84b] mb-1 truncate">{articleTitle}</p>
+                )}
+                <p className="text-xs font-mono text-[#4a9e6b]">
+                  {countWords(articleText)} words extracted
+                </p>
+              </div>
+            )}
           </div>
         )}
 
