@@ -79,13 +79,21 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#0e0e0e] text-[#e8e8e0]">
       <div className="max-w-3xl mx-auto px-6 py-16">
-        <header className="mb-12">
+        <header className="mb-8">
           <h1 className="font-serif text-4xl text-[#e8e8e0] tracking-tight mb-2">
             The Reasoning Machine
           </h1>
-          <p className="font-mono text-xs text-[#888880] tracking-widest uppercase">
+          <p className="font-mono text-xs text-[#888880] tracking-widest uppercase mb-6">
             Not what to think — how to think.
           </p>
+          <div className="border-l-2 border-[#2e2e2e] pl-4 space-y-2">
+            <p className="text-sm font-mono text-[#666660] leading-relaxed">
+              Most of us were never taught to reason well — only to sound confident. This tool scores any argument, article, or conversation across seven dimensions of rigorous thinking, then shows you exactly where the logic breaks down and how to sharpen it.
+            </p>
+            <p className="text-sm font-mono text-[#444440] leading-relaxed">
+              Paste text, upload a PDF, drop an article link, or pull a YouTube transcript. You will get a FLOATER scorecard, detected biases and fallacies with quotes from the source, specific improvement steps, and Socratic questions to stress-test the reasoning further.
+            </p>
+          </div>
         </header>
 
         <section className="mb-12">
