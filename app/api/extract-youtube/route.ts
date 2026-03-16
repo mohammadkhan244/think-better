@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
       )
     }
     return NextResponse.json(
-      { error: 'Transcript not available for this video.' },
+      { error: `Transcript not available for this video. (debug: ${message})` },
       { status: 500 }
     )
   }
