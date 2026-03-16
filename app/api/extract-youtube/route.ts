@@ -14,78 +14,57 @@ function extractVideoId(url: string): string | null {
 }
 
 async function fetchTranscript(videoId: string): Promise<string> {
-  // Fetch the YouTube watch page with browser-like headers to avoid datacenter IP blocking
-  const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    },
-  })
+  // Use YouTube's internal Innertube API (same as the YouTube mobile app).
+  // The ANDROID client bypasses consent/bot checks and returns full caption data.
+  const res = await fetch(
+    'https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        context: {
+          client: {
+            clientName: 'ANDROID',
+            clientVersion: '17.31.35',
+            androidSdkVersion: 30,
+          },
+        },
+        videoId,
+      }),
+    }
+  )
 
-  if (!pageRes.ok) throw new Error(`YouTube page fetch failed: ${pageRes.status}`)
-
-  const html = await pageRes.text()
-
-  // Extract ytInitialPlayerResponse from the page
-  const match = html.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\})\s*;/)
-  if (!match) throw new Error('Could not parse YouTube player response')
+  if (!res.ok) throw new Error(`Innertube request failed: ${res.status}`)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let playerResponse: any
-  try {
-    playerResponse = JSON.parse(match[1])
-  } catch {
-    throw new Error('Failed to parse player response JSON')
-  }
+  const data: any = await res.json()
+  const captionTracks =
+    data?.captions?.playerCaptionsTracklistRenderer?.captionTracks
 
-  // Find caption tracks
-  const captionTracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks
   if (!captionTracks || captionTracks.length === 0) {
-    throw new Error('No captions available')
+    throw new Error('No captions available for this video')
   }
 
-  // Prefer English, fall back to first available
+  // Prefer English captions, fall back to first track
   const track =
-    captionTracks.find((t: { languageCode: string }) => t.languageCode.startsWith('en')) ??
-    captionTracks[0]
+    captionTracks.find((t: { languageCode: string }) =>
+      t.languageCode.startsWith('en')
+    ) ?? captionTracks[0]
 
   const captionUrl: string = track.baseUrl
   if (!captionUrl) throw new Error('No caption URL found')
 
-  // Fetch the caption XML
-  const captionRes = await fetch(captionUrl + '&fmt=json3', {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    },
-  })
-
-  if (!captionRes.ok) {
-    // Fall back to XML format
-    const xmlRes = await fetch(captionUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-    })
-    const xml = await xmlRes.text()
-    // Parse XML transcript
-    const texts: string[] = []
-    const re = /<text[^>]*>([^<]*)<\/text>/g
-    let m: RegExpExecArray | null
-    while ((m = re.exec(xml)) !== null) {
-      texts.push(m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"'))
-    }
-    return texts.join(' ').replace(/\s+/g, ' ').trim()
-  }
+  // Fetch as JSON3 format (cleaner than XML)
+  const captionRes = await fetch(captionUrl + '&fmt=json3')
+  if (!captionRes.ok) throw new Error(`Caption fetch failed: ${captionRes.status}`)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const json: any = await captionRes.json()
-  const events = json?.events ?? []
-  const text = events
+  const text = (json?.events ?? [])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .filter((e: any) => e.segs)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((e: any) => e.segs.map((s: any) => s.utf8).join(''))
+    .map((e: any) => e.segs.map((s: any) => s.utf8 ?? '').join(''))
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -113,8 +92,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ text })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    if (message.includes('No caption') || message.includes('No captions')) {
+    const message = err instanceof Error ? err.message : ''
+    if (message.includes('No captions') || message.includes('No caption URL')) {
       return NextResponse.json(
         { error: 'This video does not have captions/subtitles available.' },
         { status: 422 }
