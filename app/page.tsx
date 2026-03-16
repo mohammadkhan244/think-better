@@ -88,16 +88,16 @@ export default function Home() {
           </p>
           <div className="border-l-2 border-[#2e2e2e] pl-4 space-y-3">
             <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed">
-              We were never taught to reason well, only to sound confident.
+              Most reasoning evolves through iteration and questioning — not formal training.
             </p>
             <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed">
-              This tool scores any argument, article, or conversation across seven dimensions of rigorous thinking, then shows you exactly where the logic breaks down and how to sharpen it.
+              This tool maps the reasoning inside any argument, article, or conversation across seven dimensions of rigorous thinking, then reveals where the argument may rely on hidden assumptions and how to strengthen it.
             </p>
             <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed">
               Paste text, upload a PDF, drop an article link, or pull a YouTube transcript.
             </p>
             <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed">
-              You will get a FLOATER scorecard, detected biases and fallacies with quotes from the source, specific improvement steps, and Socratic questions to stress-test the reasoning further.
+              You will get a FLOATER scorecard, detected reasoning patterns with quotes from the source, specific steps to strengthen the argument, and Socratic questions to stress-test it further.
             </p>
           </div>
         </header>
@@ -159,7 +159,7 @@ export default function Home() {
             <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase">
-                  Detected Issues ({single.biasesAndFallacies.length})
+                  Reasoning Patterns ({single.biasesAndFallacies.length})
                 </h2>
                 <div className="flex gap-1">
                   {(['all', 'fallacies', 'biases'] as FilterType[]).map(f => (
