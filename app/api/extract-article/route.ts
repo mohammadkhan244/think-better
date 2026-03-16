@@ -16,13 +16,17 @@ function getSiteHint(hostname: string): string | null {
   return null
 }
 
-function detectPaywall(html: string, text: string): boolean {
+// Known open platforms where subscribe CTAs are normal — don't flag as paywalled
+const OPEN_PLATFORMS = /substack\.com|medium\.com|beehiiv\.com|ghost\.io|wordpress\.com|blogger\.com|dev\.to|hashnode\.com/
+
+function detectPaywall(html: string, text: string, hostname: string): boolean {
+  if (OPEN_PLATFORMS.test(hostname)) return false
   const paywallSignals = [
-    /subscribe to (continue|read|access)/i,
     /sign in to (continue|read|access)/i,
     /create (a free )?account to (continue|read)/i,
     /you('ve| have) reached your (free )?article limit/i,
     /unlock (this|full) article/i,
+    /subscribe to (continue reading|read the full|access)/i,
   ]
   return paywallSignals.some(re => re.test(html)) && text.split(/\s+/).length < 200
 }
@@ -82,7 +86,7 @@ export async function POST(req: NextRequest) {
     const rawText = article?.textContent ?? ''
     const text = rawText.replace(/\s+/g, ' ').trim()
 
-    if (detectPaywall(html, text)) {
+    if (detectPaywall(html, text, hostname)) {
       const hint = earlyHint ?? 'This article appears to be paywalled. Copy the article text and paste it into the Text tab.'
       return NextResponse.json({ error: hint }, { status: 422 })
     }
