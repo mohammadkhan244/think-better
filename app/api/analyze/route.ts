@@ -134,9 +134,9 @@ export async function POST(req: NextRequest) {
     const issueCount = analysis.biasesAndFallacies.length
     const highConfidence = analysis.biasesAndFallacies.filter(i => i.confidence === 'HIGH').length
 
-    const summary = `Overall reasoning score: ${overall}/10. ` +
+    const summary =
       (overall >= 7 ? 'This text demonstrates relatively strong reasoning. ' : overall >= 4 ? 'This text shows moderate reasoning quality with notable gaps. ' : 'This text has significant reasoning weaknesses. ') +
-      (issueCount > 0 ? `${issueCount} bias or fallacy pattern(s) detected (${highConfidence} high-confidence). ` : 'No common bias or fallacy patterns detected. ') +
+      (issueCount > 0 ? `${issueCount} reasoning pattern(s) detected (${highConfidence} high-confidence). ` : 'No common reasoning patterns detected. ') +
       'Use the follow-up questions to probe the gaps.'
 
     const result = {
