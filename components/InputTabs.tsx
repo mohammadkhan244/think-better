@@ -191,7 +191,20 @@ export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
                 {youtubeLoading ? 'Loading...' : 'Extract'}
               </button>
             </div>
-            {youtubeError && <p className="text-xs font-mono text-[#c0392b]">{youtubeError}</p>}
+            {youtubeError && (
+              <div className="space-y-2">
+                <p className="text-xs font-mono text-[#c0392b]">{youtubeError}</p>
+                <div className="border border-[#2e2e2e] p-3 space-y-1">
+                  <p className="text-xs font-mono text-[#888880]">YouTube blocks automatic extraction from servers. To work around this:</p>
+                  <ol className="text-xs font-mono text-[#666660] space-y-1 list-none">
+                    <li>1. Open the video on YouTube</li>
+                    <li>2. Click <span className="text-[#888880]">&#8942;</span> below the video → <span className="text-[#888880]">Show transcript</span></li>
+                    <li>3. Copy all the transcript text</li>
+                    <li>4. Paste it into the <button onClick={() => setActiveTab('text')} className="text-[#c8a84b] underline cursor-pointer">Text tab</button></li>
+                  </ol>
+                </div>
+              </div>
+            )}
             {youtubeText && (
               <p className="text-xs font-mono text-[#4a9e6b]">
                 {countWords(youtubeText)} words extracted from transcript
