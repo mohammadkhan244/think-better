@@ -179,6 +179,10 @@ const DETECTORS: DetectorEntry[] = [
       /\bmillions of (people|americans?|europeans?|french|japanese)\b/i,
       /\b(entire|whole) (country|nation|population|culture|society) (eats?|does|practices?|consumes?)\b/i,
       /\b(lower|higher|better|worse) .{3,40} than (americans?|the (us|usa|united states))\b/i,
+      /\bthe majority of\b/i,
+      /\ba \d{4} poll\b/i,
+      /\bpoll (which |that )?(confirms?|proves?|shows?|validates?)\b/i,
+      /\b(confirms?|proves?|validates?) (these|this|that) (policies|views?|ideas?|approaches?)\b/i,
     ],
     contextValidators: [/.*/],
     floaterDimension: 'O'
