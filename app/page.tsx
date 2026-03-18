@@ -86,20 +86,9 @@ export default function Home() {
           <p className="font-mono text-xs text-[#888880] tracking-widest uppercase mb-6">
             Not what to think — how to think.
           </p>
-          <div className="border-l-2 border-[#2e2e2e] pl-4 space-y-3">
-            <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed">
-              Most reasoning evolves through iteration and questioning — not formal training.
-            </p>
-            <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed">
-              This tool maps the reasoning inside any argument, article, or conversation across seven dimensions of rigorous thinking, then reveals where the argument may rely on hidden assumptions and how to strengthen it.
-            </p>
-            <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed">
-              Paste text, upload a PDF, drop an article link, or pull a YouTube transcript.
-            </p>
-            <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed">
-              You will get a FLOATER scorecard, detected reasoning patterns with quotes from the source, specific steps to strengthen the argument, and Socratic questions to stress-test it further.
-            </p>
-          </div>
+          <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed">
+            Map the hidden assumptions inside any argument.
+          </p>
         </header>
 
         <section className="mb-12">
