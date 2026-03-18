@@ -40,17 +40,35 @@ interface MultiResult {
 
 type AnalysisResult = SingleResult | MultiResult
 type FilterType = 'all' | 'fallacies' | 'biases'
+type MobileTab = 'terrain' | 'floater' | 'patterns' | 'questions'
+
+function getWhatThisMeans(overall: number, issueCount: number): string {
+  if (overall < 4)
+    return `This reasoning contains ${issueCount > 0 ? `${issueCount} structural pattern${issueCount !== 1 ? 's' : ''}` : 'several areas'} where conclusions depend on untested assumptions. The questions below will sharpen any decision built on top of it.`
+  if (overall < 7)
+    return `This reasoning has real structure, but some of the load-bearing claims rest on assumptions worth examining. The questions below help stress-test them.`
+  return `The reasoning shows relatively strong structure. A few targeted questions could make it more robust.`
+}
+
+const TABS: { id: MobileTab; icon: string; label: string }[] = [
+  { id: 'terrain',   icon: '🧭', label: 'Terrain'   },
+  { id: 'patterns',  icon: '🔍', label: 'Patterns'  },
+  { id: 'floater',   icon: '📊', label: 'FLOATER'   },
+  { id: 'questions', icon: '❓', label: 'Questions'  },
+]
 
 export default function Home() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState<FilterType>('all')
+  const [mobileTab, setMobileTab] = useState<MobileTab>('questions')
 
   const handleAnalyze = async (text: string, sourceType: string) => {
     setIsLoading(true)
     setError('')
     setResult(null)
+    setMobileTab('questions')
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
@@ -75,6 +93,13 @@ export default function Home() {
     if (filter === 'fallacies') return issue.type === 'fallacy'
     return issue.type === 'bias'
   }) ?? []
+
+  // Returns classes that show on the active mobile tab, and always on desktop
+  function tabClass(tab: MobileTab) {
+    return mobileTab === tab
+      ? 'block mb-10'
+      : 'hidden md:block md:mb-10'
+  }
 
   return (
     <main className="min-h-screen bg-[#0e0e0e] text-[#e8e8e0]">
@@ -124,28 +149,37 @@ export default function Home() {
 
         {/* ── Single-speaker results ── */}
         {single && !isLoading && (
-          <div className="space-y-10 animate-fadeIn">
-            <section>
+          <div className="animate-fadeIn pb-[56px] md:pb-0">
+
+            {/* ── Tab 1: Terrain ── */}
+            <section className={tabClass('terrain')}>
               <ResultsSummary summary={single.summary} overall={single.floater.overall} fromCache={single.fromCache} />
+              <div className="mt-4 border border-[#2e2e2e] p-4">
+                <p className="text-xs font-mono text-[#444440] tracking-widest uppercase mb-2">What This Means</p>
+                <p className="text-xs font-mono text-[#666660] leading-relaxed">
+                  {getWhatThisMeans(single.floater.overall, single.biasesAndFallacies.length)}
+                </p>
+              </div>
             </section>
 
-            <section>
+            {/* ── Tab 3: FLOATER (+ improvements) ── */}
+            <section className={tabClass('floater')}>
               <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-4">FLOATER Scorecard</h2>
               <FloaterChart scores={single.floater.scores} />
               <div className="mt-4">
                 <FloaterBreakdown scores={single.floater.scores} />
               </div>
+              {single.improvements.length > 0 && (
+                <div className="mt-6">
+                  <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-1">How to Strengthen This</h2>
+                  <p className="text-xs font-mono text-[#444440] mb-4">Specific gaps, what to read, and how to reframe.</p>
+                  <ImprovementPanel improvements={single.improvements} />
+                </div>
+              )}
             </section>
 
-            {single.improvements.length > 0 && (
-              <section>
-                <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-1">How to Improve</h2>
-                <p className="text-xs font-mono text-[#444440] mb-4">Specific gaps, what to read, and how to reframe — click any row to expand.</p>
-                <ImprovementPanel improvements={single.improvements} />
-              </section>
-            )}
-
-            <section>
+            {/* ── Tab 2: Patterns ── */}
+            <section className={tabClass('patterns')}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase">
                   Reasoning Patterns ({single.biasesAndFallacies.length})
@@ -173,10 +207,43 @@ export default function Home() {
               )}
             </section>
 
-            <section>
-              <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-4">Questions to Sharpen This Reasoning</h2>
+            {/* ── Tab 4: Questions ── */}
+            <section className={tabClass('questions')}>
+              <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-2">Questions to Sharpen This Reasoning</h2>
+              <p className="text-xs font-mono text-[#444440] mb-4 leading-relaxed">
+                These questions don&apos;t challenge whether you&apos;re right — they reveal what would need to be true for the reasoning to hold.
+              </p>
               <QuestionList questions={single.followUpQuestions} />
             </section>
+
+            {/* ── Mobile bottom tab bar ── */}
+            <div
+              className="fixed bottom-0 left-0 right-0 md:hidden z-50 bg-[#0e0e0e] border-t border-[#2e2e2e]"
+              style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            >
+              <div className="flex h-14">
+                {TABS.map(tab => {
+                  const isActive = mobileTab === tab.id
+                  const count = tab.id === 'patterns' ? single.biasesAndFallacies.length : null
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setMobileTab(tab.id)}
+                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-mono transition-colors ${
+                        isActive ? 'text-[#c8a84b]' : 'text-[#444440]'
+                      }`}
+                    >
+                      <span className="text-base leading-none">{tab.icon}</span>
+                      <span>
+                        {tab.label}
+                        {count !== null && count > 0 ? ` (${count})` : ''}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
           </div>
         )}
       </div>

@@ -57,9 +57,12 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const noCache = req.nextUrl.searchParams.get('nocache') === '1'
     const cacheKey = getCacheKey(trimmed + (sourceType ?? ''))
-    const cached = getFromCache(cacheKey)
-    if (cached) return NextResponse.json({ ...cached, fromCache: true })
+    if (!noCache) {
+      const cached = getFromCache(cacheKey)
+      if (cached) return NextResponse.json({ ...cached, fromCache: true })
+    }
 
     // ── Auto speaker detection ────────────────────────────────────────────────
     // Step 1: deterministic label scan (free, no LLM)
@@ -123,7 +126,7 @@ export async function POST(req: NextRequest) {
         speakers: speakerResults,
         fromCache: false,
       }
-      setInCache(cacheKey, result)
+      if (!noCache) setInCache(cacheKey, result)
       return NextResponse.json(result)
     }
 
@@ -148,7 +151,7 @@ export async function POST(req: NextRequest) {
       summary,
       fromCache: false,
     }
-    setInCache(cacheKey, result)
+    if (!noCache) setInCache(cacheKey, result)
     return NextResponse.json(result)
 
   } catch (err) {

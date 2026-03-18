@@ -28,3 +28,7 @@ export function getFromCache(key: string): any | null {
 export function setInCache(key: string, result: any): void {
   cache.set(key, { result, timestamp: Date.now() })
 }
+
+export function clearCache(): void {
+  cache.clear()
+}
