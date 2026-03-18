@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     const cacheKey = getCacheKey(trimmed + (sourceType ?? ''))
     if (!noCache) {
       const cached = getFromCache(cacheKey)
-      if (cached) return NextResponse.json({ ...cached, fromCache: true })
+      if (cached) return NextResponse.json({ ...cached, fromCache: true, cacheStatus: 'hit' })
     }
 
     // ── Auto speaker detection ────────────────────────────────────────────────
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
         fromCache: false,
       }
       if (!noCache) setInCache(cacheKey, result)
-      return NextResponse.json(result)
+      return NextResponse.json({ ...result, cacheStatus: noCache ? 'bypassed' : 'miss' })
     }
 
     // ── Single-speaker path ───────────────────────────────────────────────────
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
       fromCache: false,
     }
     if (!noCache) setInCache(cacheKey, result)
-    return NextResponse.json(result)
+    return NextResponse.json({ ...result, cacheStatus: noCache ? 'bypassed' : 'miss' })
 
   } catch (err) {
     console.error(err)
