@@ -534,6 +534,344 @@ const DETECTORS: DetectorEntry[] = [
     contextValidators: [/.*/],
     floaterDimension: 'O'
   },
+  // ── New Fallacies ──────────────────────────────────────────────────────────
+  {
+    name: 'Appeal to Ignorance',
+    type: 'fallacy',
+    definition: 'Claiming something is true because it has not been proven false, or false because it has not been proven true.',
+    triggers: [
+      /\bno (one |)has (ever |)proved? (it'?s?|that it'?s?|this is) (wrong|false|harmful|dangerous)\b/i,
+      /\bcan'?t (prove|disprove) (it|that|this|me) wrong\b/i,
+      /\buntil (someone |you |they |)(prove|disprove|show)s? (otherwise|me wrong|it false)\b/i,
+      /\bno evidence (against|disproving|contradicting)\b/i,
+      /\bnobody has (shown|demonstrated|proven) (that |it |this )?(doesn'?t|isn'?t|won'?t)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'F'
+  },
+  {
+    name: 'Burden of Proof Shift',
+    type: 'fallacy',
+    definition: 'Demanding the opponent disprove a claim rather than providing evidence for it.',
+    triggers: [
+      /\bprove (me |it |that |this )?(wrong|false|incorrect)\b/i,
+      /\byou can'?t (prove|show|demonstrate) (that |it |this )?(I'?m?|it'?s?|this is) wrong\b/i,
+      /\bshow me (the |one |any )?(study|evidence|proof|example) (that |which |)proves? (otherwise|me wrong|it false)\b/i,
+      /\bif you can'?t (prove|disprove|refute)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'F'
+  },
+  {
+    name: 'Tu Quoque (Whataboutism)',
+    type: 'fallacy',
+    definition: 'Deflecting criticism by pointing to the opponent\'s similar behavior rather than addressing the argument.',
+    triggers: [
+      /\bwhat about (when|the time|how)\b/i,
+      /\byou('re| are) (one to talk|doing the same|no better|guilty of the same)\b/i,
+      /\bbut (they|you|the other side|liberals?|conservatives?|democrats?|republicans?) (also|do the same|did the same|are worse)\b/i,
+      /\bhow (come|is it that) (nobody|no one) (talks? about|mentions?|criticizes?)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'L'
+  },
+  {
+    name: 'False Equivalence',
+    type: 'fallacy',
+    definition: 'Treating two fundamentally different things as if they are the same.',
+    triggers: [
+      /\bsame (thing|difference|argument|logic|reasoning)\b/i,
+      /\bjust as (bad|good|harmful|dangerous|valid) as\b/i,
+      /\bno different (from|than|to)\b/i,
+      /\bboth sides (are|do|say|claim|argue)\b/i,
+      /\bequally (valid|wrong|bad|harmful|dangerous|guilty)\b/i,
+      /\bexactly (like|the same as|equivalent to)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'L'
+  },
+  {
+    name: 'Composition Fallacy',
+    type: 'fallacy',
+    definition: 'Assuming what is true of the parts must be true of the whole.',
+    triggers: [
+      /\beach (part|component|member|individual|element) .{3,40}so the (whole|entire|overall|group|team|system)\b/i,
+      /\bif every (part|member|individual|person|component)\b/i,
+      /\bbecause (each|every) (one|person|part|member) (is|does|can)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'L'
+  },
+  {
+    name: 'Division Fallacy',
+    type: 'fallacy',
+    definition: 'Assuming what is true of the whole must be true of each part.',
+    triggers: [
+      /\b(the company|the team|the country|the system|the industry|the group) (is|does|has|performs) .{3,40}so (each|every|all) (member|person|part|employee|individual)\b/i,
+      /\bsince (the whole|the entire|the overall|the group|america|the us)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'L'
+  },
+  {
+    name: 'Equivocation',
+    type: 'fallacy',
+    definition: 'Using the same word with two different meanings to make an argument appear valid.',
+    triggers: [
+      /\bthe word .{3,30} means\b/i,
+      /\btechnically (speaking|defined|correct|means)\b/i,
+      /\bby (definition|that logic|that reasoning) .{3,40}(also means|implies|proves)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'F'
+  },
+  {
+    name: 'Motte and Bailey',
+    type: 'fallacy',
+    definition: 'Conflating a strong controversial claim with a weaker defensible one to avoid criticism.',
+    triggers: [
+      /\ball I('?m| am) saying is\b/i,
+      /\bI never said .{3,60}I (just |only |merely |simply )said\b/i,
+      /\bthat'?s? not what I (meant|said|claimed|argued)\b/i,
+      /\byou'?re? (twisting|misrepresenting|distorting) (my |what I )(words?|said|meant|claimed)\b/i,
+      /\bI('?m| am) (just|only|merely|simply) saying (that |)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'F'
+  },
+  {
+    name: 'Loaded Question',
+    type: 'fallacy',
+    definition: 'Asking a question that contains an embedded assumption the respondent cannot answer without accepting.',
+    triggers: [
+      /\bwhen did you stop\b/i,
+      /\bwhy (do|did|are|were) you (always|still|continue to)\b/i,
+      /\bhow (long|many times) (have you|did you) (keep|continue|persist)\b/i,
+      /\bwhy (is it that|does) (everyone|nobody|all|no one) (always|never|still)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'F'
+  },
+  {
+    name: 'Middle Ground Fallacy',
+    type: 'fallacy',
+    definition: 'Assuming the truth must lie between two extremes when one side may simply be correct.',
+    triggers: [
+      /\bthe truth (is|lies?) (somewhere |)(in the middle|between)\b/i,
+      /\bboth (sides|extremes|positions|views) have (a point|merit|some truth|valid points)\b/i,
+      /\bsomewhere between .{3,60}and .{3,60}is (the truth|correct|right|reality)\b/i,
+      /\bcompromise (position|view|answer|solution) (is|must be|has to be) (right|correct|true|best)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'A'
+  },
+  {
+    name: 'Nirvana Fallacy',
+    type: 'fallacy',
+    definition: 'Rejecting a solution because it is not perfect, rather than comparing it to realistic alternatives.',
+    triggers: [
+      /\buntil (it|we|they|this) (can |)(guarantee|ensure|eliminate|solve|fix) (all|every|complete)\b/i,
+      /\bif it (can'?t|doesn'?t|won'?t) (solve|fix|eliminate|guarantee) (everything|all|the entire|complete)\b/i,
+      /\bnot worth (it|doing|trying|implementing) (unless|until|if) (it|we|they) (can|will) (fully|completely|perfectly)\b/i,
+      /\bperfect (solution|answer|system|approach) (or|otherwise|or else|or we)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'A'
+  },
+  // ── New Cognitive Biases ───────────────────────────────────────────────────
+  {
+    name: 'In-Group Bias',
+    type: 'bias',
+    definition: 'Favoring members of one\'s own group and applying stricter standards to outsiders.',
+    triggers: [
+      /\b(they|their side|the other side|those people) (always|tend to|typically|always seem to) (lie|distort|manipulate|exaggerate|mislead)\b/i,
+      /\bpeople like (us|me|them)\b/i,
+      /\bour (culture|community|country|religion|group) (values?|believes?|knows?|understands?)\b/i,
+      /\b(liberals?|conservatives?|democrats?|republicans?|they) always (do|say|claim|act|argue|believe)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'O'
+  },
+  {
+    name: 'Illusion of Control',
+    type: 'bias',
+    definition: 'Overestimating one\'s ability to control events that are largely determined by chance or complex systems.',
+    triggers: [
+      /\bif (we|they|you|I) just (do|follow|implement|apply|enforce)\b/i,
+      /\ball (we|they|you) (need to do|have to do|need) is\b/i,
+      /\bsimply (enforce|implement|apply|follow|do) (the|this|that|our) (rules?|policy|plan|strategy|law)\b/i,
+      /\bit'?s? (that |just |really |)(simple|easy|straightforward) — just\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'T'
+  },
+  {
+    name: 'Optimism Bias',
+    type: 'bias',
+    definition: 'Overestimating the likelihood of positive outcomes for oneself or one\'s preferred approach.',
+    triggers: [
+      /\b(this|it|we|they) will (definitely|certainly|absolutely|surely|without question) (work|succeed|solve|fix|improve)\b/i,
+      /\bno (reason|doubt|question) (this|it|that|the plan) (will|won'?t) (fail|work|succeed)\b/i,
+      /\bguaranteed to (work|succeed|improve|solve|fix)\b/i,
+      /\bcan'?t (fail|go wrong|miss|lose)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'T'
+  },
+  {
+    name: 'Pessimism Bias',
+    type: 'bias',
+    definition: 'Overestimating the likelihood of negative outcomes or treating worst-case scenarios as inevitable.',
+    triggers: [
+      /\b(this|it|they|we) will (definitely|certainly|inevitably|surely) (fail|collapse|decline|get worse|deteriorate)\b/i,
+      /\b(always|inevitably|eventually) (leads? to|results? in|ends? in|causes?) (failure|collapse|decline|disaster|ruin)\b/i,
+      /\bthere'?s? (no|little|no realistic) (hope|chance|possibility|way) (that|of|for)\b/i,
+      /\bdoomed to (fail|repeat|collapse|decline)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'T'
+  },
+  {
+    name: 'Recency Bias',
+    type: 'bias',
+    definition: 'Giving more weight to recent events than older data when forming judgments.',
+    triggers: [
+      /\b(lately|recently|these days|in recent (months?|years?|times?)) .{3,60}(proves?|shows?|demonstrates?|confirms?|means?)\b/i,
+      /\bever since (last year|recently|the past (few |)(months?|years?))\b/i,
+      /\b(last (year|month|quarter|election|cycle)|recent (events?|data|news|results?))\b/i,
+      /\bthings have (changed|gotten|become) (so much |)(worse|better|different) (lately|recently|these days)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'E'
+  },
+  {
+    name: 'Reactance Bias',
+    type: 'bias',
+    definition: 'Rejecting a position primarily because someone is trying to persuade you to accept it.',
+    triggers: [
+      /\bthey('re| are) (just |only |)(trying to|attempting to) (manipulate|control|push|force|pressure) (us|you|me|people)\b/i,
+      /\bI (refuse|won'?t|will not) (believe|accept|trust) (it|this|that) (just |simply |)(because|since) (they|someone|the media|the government) (say|says|told|wants)\b/i,
+      /\bthe (more|harder) (they|someone|the media) (push(es)?|tries?|insists?), the (more|less) (I|we|people)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'O'
+  },
+  {
+    name: 'Ostrich Effect',
+    type: 'bias',
+    definition: 'Avoiding negative information by refusing to engage with contradictory evidence.',
+    triggers: [
+      /\bI (don'?t|won'?t|refuse to) (read|watch|listen to|look at|consider|engage with) (that|those|the other side|mainstream media|alternative media|their|anything from)\b/i,
+      /\bnot (worth|going to) (reading|watching|listening to|considering|engaging with)\b/i,
+      /\bdon'?t need to (read|watch|look at|consider|hear) (it|that|their|the) (to know|to see|to understand)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'O'
+  },
+  {
+    name: 'Zero-Risk Bias',
+    type: 'bias',
+    definition: 'Preferring to eliminate a small risk entirely over reducing a much larger risk significantly.',
+    triggers: [
+      /\b(we|they) (need to|must|should) (completely|fully|totally|entirely) (eliminate|remove|eradicate|end|stop)\b/i,
+      /\bany (risk|chance|possibility|danger) (is|is simply|is absolutely) (unacceptable|too much|intolerable)\b/i,
+      /\beven (one|a single|any) (case|instance|example|occurrence) (is|is too many|is unacceptable|proves)\b/i,
+      /\bzero (tolerance|risk|chance|exceptions?)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'A'
+  },
+  {
+    name: 'Neglect of Probability',
+    type: 'bias',
+    definition: 'Failing to account for the actual likelihood of an event when making decisions.',
+    triggers: [
+      /\b(it|this|that) (could|might|may|can) happen\b/i,
+      /\b(what if|imagine if|suppose) (it|this|that) (happened|happens|does|did|were to)\b/i,
+      /\b(the possibility|the chance|the risk) (that|of) .{3,60}(means?|requires?|demands?|justifies?)\b/i,
+      /\bjust (because|since) (it'?s?|something is) (possible|conceivable|imaginable)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'E'
+  },
+  {
+    name: 'Bandwagon Effect (Momentum)',
+    type: 'bias',
+    definition: 'Believing something is correct or good primarily because it is gaining popularity or momentum.',
+    triggers: [
+      /\b(growing|increasing|rising|more and more) (number of people|companies|countries|experts?|researchers?|scientists?) (are |now )?(saying|believing|accepting|adopting|doing)\b/i,
+      /\bthe (tide|wind|momentum|direction) is (turning|shifting|moving|changing) toward\b/i,
+      /\beveryone is (moving|shifting|switching|turning) to\b/i,
+      /\bthe (future|trend|direction) is (clearly|obviously|definitely|undeniably)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'O'
+  },
+  {
+    name: 'Affect Heuristic',
+    type: 'bias',
+    definition: 'Making judgments based on emotional response rather than analysis.',
+    triggers: [
+      /\b(feels?|seemed?|sounds?) (wrong|right|dangerous|safe|good|bad|off|correct|true|false)\b/i,
+      /\bmy (gut|instinct|intuition|feeling) (tells?|says?|knows?)\b/i,
+      /\bsomething (just |)(feels?|seems?) (off|wrong|right|suspicious|dangerous|safe)\b/i,
+      /\bI (just |)(feel|sense|know) (it'?s?|that it'?s?) (wrong|right|true|false|dangerous|safe)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'O'
+  },
+  {
+    name: 'Semmelweis Reflex',
+    type: 'bias',
+    definition: 'Reflexively rejecting new evidence because it contradicts established norms or beliefs.',
+    triggers: [
+      /\bwe('ve| have) (always|never) (done|believed|accepted|practiced|followed) (it|this|that) (this way|like this|before)\b/i,
+      /\bthat'?s? (just |)(how|the way) (it'?s?|things|we|they) (always |)(work|done|been|operated)\b/i,
+      /\bif (it|this|that) (worked|was true|was correct|was right), we would (already|have already) (know|known|be doing|have done)\b/i,
+      /\bpeople (have|were) (always|never) (done|believed|thought|said|known) (this|that|it) (before|until now)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'A'
+  },
+  {
+    name: 'Planning Fallacy',
+    type: 'bias',
+    definition: 'Underestimating the time, costs, and risks of future actions while overestimating benefits.',
+    triggers: [
+      /\bshould (only|just) take (a few|two|three|four|five|several) (days?|weeks?|months?)\b/i,
+      /\bwill (be done|be complete|be finished|be ready) (by|within|in) (a few|two|three|several)\b/i,
+      /\bonce (we|they|it) (implement|deploy|launch|finish|complete|build)\b/i,
+      /\bit'?s? (just|only|simply|really) a matter of (time|implementation|execution|doing it)\b/i,
+      /\beasily (done|implemented|deployed|executed|achieved|completed)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'T'
+  },
+  {
+    name: 'Decoy Effect',
+    type: 'bias',
+    definition: 'Having preferences influenced by an irrelevant third option introduced to make one choice seem superior.',
+    triggers: [
+      /\bcompared to (option|choice|alternative) [A-C]\b/i,
+      /\bwhen you consider (all|both|the) (options?|choices?|alternatives?)\b/i,
+      /\bthe (obvious|clear|only rational|best) choice (when|if|given|considering)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'A'
+  },
+  {
+    name: 'Moral Licensing',
+    type: 'bias',
+    definition: 'Using past good behavior as justification for current questionable behavior.',
+    triggers: [
+      /\bafter (all|everything) (I'?ve?|we'?ve?|they'?ve?) (done|sacrificed|given|contributed|built)\b/i,
+      /\bgiven (everything|all) (I'?ve?|we'?ve?|they'?ve?) (done|sacrificed|given|contributed)\b/i,
+      /\bI('ve| have) (earned|deserve|have the right to) (this|that|it) (because|after|given)\b/i,
+      /\bconsidering (how much|everything) (I'?ve?|we'?ve?|they'?ve?) (done|given|sacrificed|contributed)\b/i,
+    ],
+    contextValidators: [/.*/],
+    floaterDimension: 'O'
+  },
 ]
 
 export interface DetectionResult {
