@@ -73,6 +73,10 @@ const domainConfig: Partial<Record<Domain, { label: string; explanation: string 
   business: {
     label: 'Business or Strategic Argument',
     explanation: 'Business arguments often involve predictions under uncertainty. Evidence and Tentative Conclusions are the most useful dimensions. Watch for survivorship bias and overconfident projections.'
+  },
+  cultural: {
+    label: 'Cultural & Social Argument',
+    explanation: 'This argument operates as cultural or social criticism. Falsifiability and Replicability scores are less meaningful here — focus on Logic, Objectivity, and whether the argument seriously considers alternative explanations for the patterns it identifies.'
   }
 }
 

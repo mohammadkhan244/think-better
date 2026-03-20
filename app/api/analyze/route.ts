@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
       improvements: analysis.improvements,
       followUpQuestions: analysis.followUpQuestions,
       agency: analysis.agency,
-      domain: detectDomain(trimmed),
+      domain: await detectDomain(trimmed),
       summary,
       fromCache: false,
     }
