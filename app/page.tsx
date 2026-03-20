@@ -96,9 +96,9 @@ const TABS: { id: MobileTab; icon: string; label: string }[] = [
 ]
 
 const MODE_OPTIONS: { id: Mode; label: string }[] = [
-  { id: 'defend',    label: '🛡 Make this argument stronger' },
-  { id: 'challenge', label: '⚔️ Find the holes in this argument' },
-  { id: 'audit',     label: '🔍 Show me what I\'m missing' },
+  { id: 'defend',    label: '🛡 Help me not lose this argument' },
+  { id: 'challenge', label: '⚔️ Help me break someone else\'s argument' },
+  { id: 'audit',     label: '🔍 Help me catch my own sloppy thinking' },
 ]
 
 export default function Home() {
