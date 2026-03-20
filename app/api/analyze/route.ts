@@ -6,6 +6,7 @@ import { generateAgency } from '@/lib/agency'
 import { generateImprovements, enrichImprovementsWithEvidence } from '@/lib/improvements'
 import { getCacheKey, getFromCache, setInCache } from '@/lib/cache'
 import { detectSpeakers, diarizeWithLLM, groupBySpeaker } from '@/lib/speakers'
+import { detectDomain } from '@/lib/domainDetector'
 
 function looksLikeConversation(text: string): boolean {
   const lines = text.split('\n').filter(l => l.trim().length > 0)
@@ -158,6 +159,7 @@ export async function POST(req: NextRequest) {
       improvements: analysis.improvements,
       followUpQuestions: analysis.followUpQuestions,
       agency: analysis.agency,
+      domain: detectDomain(trimmed),
       summary,
       fromCache: false,
     }

@@ -7,6 +7,7 @@ import BiasCard from '@/components/BiasCard'
 import ResultsSummary from '@/components/ResultsSummary'
 import SpeakerResults from '@/components/SpeakerResults'
 import type { Improvement } from '@/lib/improvements'
+import type { Domain } from '@/lib/domainDetector'
 
 const FloaterChart = dynamic(() => import('@/components/FloaterChart'), { ssr: false })
 
@@ -28,6 +29,7 @@ interface SingleResult {
   improvements: Improvement[]
   followUpQuestions: Questions
   agency?: Agency
+  domain?: { domain: Domain; confidence: string }
   summary: string
   fromCache: boolean
 }
@@ -50,6 +52,126 @@ interface MultiResult {
 type AnalysisResult = SingleResult | MultiResult
 type FilterType = 'all' | 'fallacies' | 'biases'
 
+// ── Domain config ─────────────────────────────────────────────────────────────
+const domainConfig: Partial<Record<Domain, { label: string; explanation: string }>> = {
+  theological: {
+    label: 'Theological Argument',
+    explanation: 'In theological arguments, low Falsifiability and Replicability scores are expected — these dimensions were designed for empirical claims. Focus on Logic, Objectivity, and Alternatives instead. Weight the questions more than the numbers here.'
+  },
+  philosophical: {
+    label: 'Philosophical Argument',
+    explanation: 'Philosophical arguments are not empirically testable by design. Low Falsifiability and Replicability scores reflect the nature of the domain, not a flaw. Logic, Objectivity, and Alternative Explanations are the most meaningful dimensions here.'
+  },
+  political: {
+    label: 'Political Argument',
+    explanation: 'Political arguments often involve value claims that cannot be falsified. Evidence and Objectivity are the most useful dimensions to examine. Watch for framing effects and selective use of data.'
+  },
+  personal: {
+    label: 'Personal or Anecdotal Argument',
+    explanation: 'This text is primarily personal or experiential. FLOATER scores are most meaningful on structured arguments — Replicability and Evidence scores here reflect the absence of external sourcing, not the validity of the experience described.'
+  },
+  business: {
+    label: 'Business or Strategic Argument',
+    explanation: 'Business arguments often involve predictions under uncertainty. Evidence and Tentative Conclusions are the most useful dimensions. Watch for survivorship bias and overconfident projections.'
+  }
+}
+
+// ── FLOATER blurbs ────────────────────────────────────────────────────────────
+type SignalLabel = 'Limited signals detected' | 'Partial signals' | 'Moderate signals' | 'Strong signals' | 'Clear signals'
+
+function getSignalLabel(score: number): SignalLabel {
+  if (score >= 9.1) return 'Clear signals'
+  if (score >= 7.1) return 'Strong signals'
+  if (score >= 5.1) return 'Moderate signals'
+  if (score >= 3.1) return 'Partial signals'
+  return 'Limited signals detected'
+}
+
+const floaterBlurbs: Record<string, {
+  name: string
+  what: string
+  signalLabels: Record<SignalLabel, string>
+}> = {
+  F: {
+    name: 'Falsifiability',
+    what: 'Can this claim be tested or disproven? Arguments with clear, testable predictions score higher. Vague or unfalsifiable claims score lower.',
+    signalLabels: {
+      'Limited signals detected': 'The claims here are difficult to test or disprove — they may be too vague, subjective, or structured to be immune to counterevidence.',
+      'Partial signals': 'Some claims are testable, but others rely on definitions or framing that make them hard to disprove.',
+      'Moderate signals': 'Most claims are reasonably testable, with some room to sharpen the definitions.',
+      'Strong signals': 'The argument makes clear, testable claims that could be disproven with the right evidence.',
+      'Clear signals': 'Exemplary — every major claim is specific and testable.'
+    }
+  },
+  L: {
+    name: 'Logic',
+    what: 'Do the conclusions follow from the premises? This dimension checks for valid reasoning structure, consistent logic, and the absence of logical fallacies.',
+    signalLabels: {
+      'Limited signals detected': 'The logical connections between claims and conclusions are weak or missing — conclusions may not follow from what was actually argued.',
+      'Partial signals': 'The reasoning holds in places but has gaps where the logic jumps or relies on unstated assumptions.',
+      'Moderate signals': 'Generally sound reasoning with a few logical steps that could be made more explicit.',
+      'Strong signals': 'The argument is logically coherent — conclusions follow from premises with few gaps.',
+      'Clear signals': 'Rigorous logical structure throughout.'
+    }
+  },
+  O: {
+    name: 'Objectivity',
+    what: 'Is the evidence evaluated honestly? This dimension checks for bias signals, emotional language, and whether opposing evidence is acknowledged.',
+    signalLabels: {
+      'Limited signals detected': 'The argument shows strong signs of motivated reasoning — evidence appears to be selected to confirm a conclusion already reached.',
+      'Partial signals': "Some acknowledgment of complexity, but the overall framing leans toward confirming the author's existing position.",
+      'Moderate signals': 'Reasonably balanced, with occasional one-sided framing.',
+      'Strong signals': 'The argument engages honestly with evidence and acknowledges complexity.',
+      'Clear signals': 'Exemplary objectivity — counterevidence is addressed, not avoided.'
+    }
+  },
+  A: {
+    name: 'Alternative Explanations',
+    what: 'Are competing explanations considered? Strong arguments acknowledge other ways to interpret the evidence and explain why they prefer their explanation.',
+    signalLabels: {
+      'Limited signals detected': 'No alternative explanations are considered — the argument treats its interpretation as the only possible one.',
+      'Partial signals': 'One or two alternatives are gestured at but not seriously engaged.',
+      'Moderate signals': 'Some competing explanations acknowledged, though not all are fully addressed.',
+      'Strong signals': 'The argument meaningfully engages with alternative interpretations.',
+      'Clear signals': 'Comprehensive — competing hypotheses are considered and addressed.'
+    }
+  },
+  T: {
+    name: 'Tentative Conclusions',
+    what: 'Are conclusions proportionate to the evidence? This dimension checks whether the argument overclaims certainty or appropriately hedges its conclusions.',
+    signalLabels: {
+      'Limited signals detected': 'Conclusions are stated with much more certainty than the evidence supports — hedging language is absent.',
+      'Partial signals': 'Some conclusions are appropriately qualified, but key claims are stated with more confidence than the evidence justifies.',
+      'Moderate signals': 'Generally proportionate conclusions with occasional overreach.',
+      'Strong signals': 'Conclusions are well-calibrated to the evidence — certainty is earned, not assumed.',
+      'Clear signals': 'Exemplary epistemic humility — conclusions are precisely proportioned to evidence.'
+    }
+  },
+  E: {
+    name: 'Evidence',
+    what: 'Is the evidence cited, relevant, and sufficient? This dimension checks for sourcing, data quality, and whether the evidence actually supports the claims being made.',
+    signalLabels: {
+      'Limited signals detected': 'Claims are made without evidence — no citations, data, or sourcing detected.',
+      'Partial signals': 'Some evidence is present but it is anecdotal, incomplete, or not directly relevant to the claims.',
+      'Moderate signals': 'Evidence is present and relevant, though more sourcing would strengthen the argument.',
+      'Strong signals': 'Well-evidenced — claims are supported with relevant, credible sourcing.',
+      'Clear signals': 'Comprehensive evidence with strong sourcing throughout.'
+    }
+  },
+  R: {
+    name: 'Replicability',
+    what: 'Could someone else verify this? This dimension checks whether the sources, methods, and reasoning are transparent enough for independent verification.',
+    signalLabels: {
+      'Limited signals detected': 'No methodology or sourcing is described — the claims cannot be independently verified from this text.',
+      'Partial signals': 'Some sourcing is present but the reasoning or methods are not transparent enough to fully verify.',
+      'Moderate signals': 'Reasonably verifiable with some gaps in sourcing or methodology.',
+      'Strong signals': 'The argument is largely verifiable — sources and reasoning are transparent.',
+      'Clear signals': 'Fully transparent — sources, methods, and reasoning are all verifiable.'
+    }
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function getWhatThisMeans(overall: number, issueCount: number): string {
   if (overall < 4)
     return `This reasoning contains ${issueCount > 0 ? `${issueCount} structural pattern${issueCount !== 1 ? 's' : ''}` : 'several areas'} where conclusions depend on untested assumptions. The questions below will sharpen any decision built on top of it.`
@@ -64,16 +186,10 @@ function CopyButton({ text }: { text: string }) {
     <button
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
       style={{
-        flexShrink: 0,
-        fontSize: '0.75rem',
-        padding: '4px 8px',
-        border: '1px solid #2e2e2e',
-        background: 'transparent',
-        color: copied ? '#c8a84b' : '#444440',
-        cursor: 'pointer',
-        whiteSpace: 'nowrap',
-        fontFamily: 'monospace',
-        transition: 'color 0.15s'
+        flexShrink: 0, fontSize: '0.75rem', padding: '4px 8px',
+        border: '1px solid #2e2e2e', background: 'transparent',
+        color: copied ? '#c8a84b' : '#444440', cursor: 'pointer',
+        whiteSpace: 'nowrap', fontFamily: 'monospace', transition: 'color 0.15s'
       }}
     >
       {copied ? 'copied' : 'copy'}
@@ -81,18 +197,8 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-function QuestionGroup({
-  title,
-  subhead,
-  questions,
-  startIndex,
-  isLast
-}: {
-  title: string
-  subhead: string
-  questions: string[]
-  startIndex: number
-  isLast?: boolean
+function QuestionGroup({ title, subhead, questions, startIndex, isLast }: {
+  title: string; subhead: string; questions: string[]; startIndex: number; isLast?: boolean
 }) {
   return (
     <div style={{
@@ -100,50 +206,16 @@ function QuestionGroup({
       paddingBottom: isLast ? 0 : '24px',
       borderBottom: isLast ? 'none' : '1px solid #2e2e2e'
     }}>
-      <h3 style={{
-        fontFamily: 'monospace',
-        fontSize: '0.8rem',
-        textTransform: 'uppercase',
-        letterSpacing: '0.08em',
-        color: '#c8a84b',
-        marginBottom: '6px',
-        marginTop: 0
-      }}>
+      <h3 style={{ fontFamily: 'monospace', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c8a84b', marginBottom: '6px', marginTop: 0 }}>
         {title}
       </h3>
-      <p style={{
-        fontFamily: 'monospace',
-        fontSize: '0.8rem',
-        color: '#666660',
-        marginBottom: '16px',
-        fontStyle: 'italic',
-        marginTop: 0
-      }}>
+      <p style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', marginBottom: '16px', fontStyle: 'italic', marginTop: 0 }}>
         {subhead}
       </p>
-      <ol style={{
-        paddingLeft: 0,
-        listStyle: 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-        margin: 0
-      }}>
+      <ol style={{ paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '16px', margin: 0 }}>
         {questions.map((q, i) => (
-          <li key={i} style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            gap: '12px',
-            fontFamily: 'monospace',
-            fontSize: '0.9rem',
-            lineHeight: 1.6,
-            color: '#e8e8e0'
-          }}>
-            <span>
-              <span style={{ color: '#444440', marginRight: '8px' }}>{startIndex + i}.</span>
-              {q}
-            </span>
+          <li key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: 1.6, color: '#e8e8e0' }}>
+            <span><span style={{ color: '#444440', marginRight: '8px' }}>{startIndex + i}.</span>{q}</span>
             <CopyButton text={q} />
           </li>
         ))}
@@ -152,16 +224,22 @@ function QuestionGroup({
   )
 }
 
+// ── Main component ────────────────────────────────────────────────────────────
 export default function Home() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState<FilterType>('all')
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+
+  const toggleExpanded = (key: string) =>
+    setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
 
   const handleAnalyze = async (text: string, sourceType: string) => {
     setIsLoading(true)
     setError('')
     setResult(null)
+    setExpanded({})
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
@@ -243,6 +321,40 @@ export default function Home() {
         {single && !isLoading && (
           <div className="animate-fadeIn">
 
+            {/* 0. Domain classifier (before breakdown) */}
+            {single.domain?.domain &&
+             single.domain.domain !== 'general' &&
+             single.domain.domain !== 'empirical' &&
+             domainConfig[single.domain.domain] && (
+              <div style={{
+                borderLeft: '3px solid #c8a84b',
+                padding: '14px 16px',
+                marginBottom: '24px',
+                background: 'rgba(200, 168, 75, 0.06)'
+              }}>
+                <div style={{
+                  fontFamily: 'monospace',
+                  fontSize: '0.7rem',
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: '#c8a84b',
+                  marginBottom: '6px',
+                  fontWeight: 600
+                }}>
+                  {domainConfig[single.domain.domain]!.label}
+                </div>
+                <p style={{
+                  fontFamily: 'monospace',
+                  fontSize: '0.85rem',
+                  color: '#666660',
+                  lineHeight: '1.6',
+                  margin: 0
+                }}>
+                  {domainConfig[single.domain.domain]!.explanation}
+                </p>
+              </div>
+            )}
+
             {/* 1. Reasoning Breakdown */}
             <section className="mb-6">
               <ResultsSummary summary={single.summary} overall={single.floater.overall} fromCache={single.fromCache} />
@@ -254,10 +366,45 @@ export default function Home() {
               </div>
             </section>
 
-            {/* 2. FLOATER Radar Chart */}
+            {/* 2. FLOATER Radar + expandable dimension rows */}
             <section className="mb-6">
               <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-4">FLOATER Scorecard</h2>
               <FloaterChart scores={single.floater.scores} />
+              <div className="mt-4">
+                {Object.entries(floaterBlurbs).map(([key, dim]) => {
+                  const scoreData = single.floater.scores[key]
+                  if (!scoreData) return null
+                  const signalLabel = getSignalLabel(scoreData.score)
+                  const isOpen = expanded[key]
+                  return (
+                    <div key={key} style={{ borderBottom: '1px solid #2e2e2e', padding: '12px 0' }}>
+                      <div
+                        onClick={() => toggleExpanded(key)}
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#c8a84b', fontSize: '0.9rem' }}>{key}</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#e8e8e0' }}>{dim.name}</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#666660', fontStyle: 'italic' }}>— {signalLabel}</span>
+                        </div>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: '#c8a84b', whiteSpace: 'nowrap', marginLeft: '12px' }}>
+                          {isOpen ? 'hide ↑' : 'what does this mean? ↓'}
+                        </span>
+                      </div>
+                      {isOpen && (
+                        <div style={{ marginTop: '10px', borderLeft: '2px solid #2e2e2e', paddingLeft: '12px' }}>
+                          <p style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#666660', lineHeight: '1.6', marginBottom: '8px', marginTop: 0 }}>
+                            {dim.what}
+                          </p>
+                          <p style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.6', margin: 0 }}>
+                            {dim.signalLabels[signalLabel] || scoreData.justification}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             </section>
 
             {/* 3. Reasoning Patterns */}
@@ -292,51 +439,19 @@ export default function Home() {
             {/* 4. Agency Block */}
             {single.agency && single.agency.bullets.length > 0 && (
               <div style={{
-                borderLeft: '3px solid #c8a84b',
-                padding: '16px',
-                marginTop: '24px',
-                marginBottom: '24px',
+                borderLeft: '3px solid #c8a84b', padding: '16px',
+                marginTop: '24px', marginBottom: '24px',
                 background: 'rgba(200, 168, 75, 0.06)'
               }}>
-                <h3 style={{
-                  fontFamily: 'monospace',
-                  fontSize: '0.75rem',
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  marginBottom: '12px',
-                  marginTop: 0,
-                  color: '#c8a84b'
-                }}>
+                <h3 style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px', marginTop: 0, color: '#c8a84b' }}>
                   What This Argument Is Resting On
                 </h3>
-                <p style={{
-                  fontFamily: 'monospace',
-                  fontSize: '0.875rem',
-                  color: '#666660',
-                  fontStyle: 'italic',
-                  marginBottom: '12px',
-                  marginTop: 0,
-                  lineHeight: '1.6'
-                }}>
+                <p style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: '#666660', fontStyle: 'italic', marginBottom: '12px', marginTop: 0, lineHeight: '1.6' }}>
                   {single.agency.framing}
                 </p>
-                <ul style={{
-                  listStyle: 'none',
-                  padding: 0,
-                  margin: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px'
-                }}>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {single.agency.bullets.map((bullet, i) => (
-                    <li key={i} style={{
-                      paddingLeft: '20px',
-                      position: 'relative',
-                      fontFamily: 'monospace',
-                      fontSize: '0.9rem',
-                      lineHeight: '1.6',
-                      color: '#e8e8e0'
-                    }}>
+                    <li key={i} style={{ paddingLeft: '20px', position: 'relative', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: '1.6', color: '#e8e8e0' }}>
                       <span style={{ position: 'absolute', left: 0, color: '#c8a84b' }}>→</span>
                       {bullet}
                     </li>
