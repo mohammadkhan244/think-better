@@ -26,7 +26,7 @@ interface SpeakerAnalysis {
     floaterDimension: string
   }[]
   improvements: Improvement[]
-  followUpQuestions: string[]
+  followUpQuestions: { defend: string[]; challenge: string[]; audit: string[] } | string[]
   summary: string
 }
 
@@ -118,14 +118,18 @@ function SpeakerPanel({ speaker }: { speaker: SpeakerAnalysis }) {
       </div>
 
       {/* Questions */}
-      {speaker.followUpQuestions.length > 0 && (
-        <div>
-          <h3 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-4">
-            Questions to Sharpen This Reasoning
-          </h3>
-          <QuestionList questions={speaker.followUpQuestions} />
-        </div>
-      )}
+      {(() => {
+        const qs = speaker.followUpQuestions
+        const flat = Array.isArray(qs) ? qs : [...qs.defend, ...qs.challenge, ...qs.audit]
+        return flat.length > 0 ? (
+          <div>
+            <h3 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-4">
+              Questions to Sharpen This Reasoning
+            </h3>
+            <QuestionList questions={flat} />
+          </div>
+        ) : null
+      })()}
     </div>
   )
 }

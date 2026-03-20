@@ -7,8 +7,6 @@ import { generateImprovements, enrichImprovementsWithEvidence } from '@/lib/impr
 import { getCacheKey, getFromCache, setInCache } from '@/lib/cache'
 import { detectSpeakers, diarizeWithLLM, groupBySpeaker } from '@/lib/speakers'
 
-type Mode = 'defend' | 'challenge' | 'audit'
-
 function looksLikeConversation(text: string): boolean {
   const lines = text.split('\n').filter(l => l.trim().length > 0)
   if (lines.length < 6) return false
@@ -19,15 +17,21 @@ function looksLikeConversation(text: string): boolean {
   return shortLineRatio > 0.55 || questionRatio > 0.12
 }
 
-async function analyzeSingleText(text: string, mode: Mode) {
+const DEFAULT_QUESTIONS = {
+  defend: ['What evidence would cause you to abandon this position?'],
+  challenge: ['What specific data supports this claim?'],
+  audit: ['Why does this conclusion feel obvious to me?']
+}
+
+async function analyzeSingleText(text: string) {
   const floaterResult = runFLOATER(text)
   const detectedIssues = runDetectors(text)
   const rawImprovements = generateImprovements(floaterResult.scores, detectedIssues)
 
   const [improvements, questions, agency] = await Promise.all([
     enrichImprovementsWithEvidence(text, rawImprovements).catch(() => rawImprovements),
-    generateQuestions(text, floaterResult.scores, detectedIssues, mode).catch(() => [] as string[]),
-    generateAgency(text, floaterResult.scores, detectedIssues, mode).catch(() => ({
+    generateQuestions(text, floaterResult.scores, detectedIssues).catch(() => DEFAULT_QUESTIONS),
+    generateAgency(text, floaterResult.scores, detectedIssues).catch(() => ({
       framing: 'Here is what this argument is resting on.',
       bullets: [
         'The weakest link in this argument is the evidence dimension — the core claims are asserted without sourcing.',
@@ -50,7 +54,7 @@ async function analyzeSingleText(text: string, mode: Mode) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, sourceType, mode = 'audit' } = await req.json()
+    const { text, sourceType } = await req.json()
 
     if (!text || typeof text !== 'string') {
       return NextResponse.json({ error: 'Text is required.' }, { status: 400 })
@@ -67,7 +71,7 @@ export async function POST(req: NextRequest) {
     }
 
     const noCache = req.nextUrl.searchParams.get('nocache') === '1'
-    const cacheKey = getCacheKey(trimmed + '::' + mode + (sourceType ?? ''))
+    const cacheKey = getCacheKey(trimmed)
     if (!noCache) {
       const cached = getFromCache(cacheKey)
       if (cached) return NextResponse.json({ ...cached, fromCache: true, cacheStatus: 'hit' })
@@ -111,7 +115,7 @@ export async function POST(req: NextRequest) {
 
           const [improvements, questions] = await Promise.all([
             enrichImprovementsWithEvidence(block.text, rawImprovements).catch(() => rawImprovements),
-            generateQuestions(block.text, floaterResult.scores, detectedIssues, mode).catch(() => [] as string[]),
+            generateQuestions(block.text, floaterResult.scores, detectedIssues).catch(() => DEFAULT_QUESTIONS),
           ])
 
           const overall = floaterResult.overall
@@ -136,7 +140,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Single-speaker path ───────────────────────────────────────────────────
-    const analysis = await analyzeSingleText(trimmed, mode)
+    const analysis = await analyzeSingleText(trimmed)
 
     const overall = analysis.floater.overall
     const issueCount = analysis.biasesAndFallacies.length

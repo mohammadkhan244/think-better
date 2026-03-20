@@ -4,18 +4,21 @@ import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import InputTabs from '@/components/InputTabs'
 import BiasCard from '@/components/BiasCard'
-import QuestionList from '@/components/QuestionList'
 import ResultsSummary from '@/components/ResultsSummary'
 import SpeakerResults from '@/components/SpeakerResults'
 import type { Improvement } from '@/lib/improvements'
 
 const FloaterChart = dynamic(() => import('@/components/FloaterChart'), { ssr: false })
 
-type Mode = 'defend' | 'challenge' | 'audit'
-
 interface Agency {
   framing: string
   bullets: string[]
+}
+
+interface Questions {
+  defend: string[]
+  challenge: string[]
+  audit: string[]
 }
 
 interface SingleResult {
@@ -23,7 +26,7 @@ interface SingleResult {
   floater: { scores: Record<string, { score: number; justification: string }>; overall: number }
   biasesAndFallacies: { name: string; type: 'bias' | 'fallacy'; definition: string; matchedText: string; confidence: 'HIGH' | 'MEDIUM' | 'LOW'; floaterDimension: string }[]
   improvements: Improvement[]
-  followUpQuestions: string[]
+  followUpQuestions: Questions
   agency?: Agency
   summary: string
   fromCache: boolean
@@ -38,7 +41,7 @@ interface MultiResult {
     floater: { scores: Record<string, { score: number; justification: string }>; overall: number }
     biasesAndFallacies: { name: string; type: 'bias' | 'fallacy'; definition: string; matchedText: string; confidence: 'HIGH' | 'MEDIUM' | 'LOW'; floaterDimension: string }[]
     improvements: Improvement[]
-    followUpQuestions: string[]
+    followUpQuestions: Questions
     summary: string
   }[]
   fromCache: boolean
@@ -46,36 +49,6 @@ interface MultiResult {
 
 type AnalysisResult = SingleResult | MultiResult
 type FilterType = 'all' | 'fallacies' | 'biases'
-
-const MODE_LABELS: Record<Mode, {
-  results: string
-  patterns: string
-  questions: string
-  questionsSub: string
-  agency: string
-}> = {
-  defend: {
-    results: 'Where This Argument Is Most Exposed',
-    patterns: 'Weaknesses to Shore Up',
-    questions: 'Questions Someone Will Use Against You',
-    questionsSub: 'These are the exact questions a sharp critic will ask. Have your answers ready.',
-    agency: 'What to Fix Before You Ship This',
-  },
-  challenge: {
-    results: 'Where This Argument Is Most Vulnerable',
-    patterns: 'Weaknesses to Exploit',
-    questions: 'Questions to Put to This Argument',
-    questionsSub: 'Use these to probe the argument. Each one targets a specific weak point.',
-    agency: 'Where to Press and In What Order',
-  },
-  audit: {
-    results: 'Reasoning Breakdown',
-    patterns: 'Reasoning Patterns Detected',
-    questions: 'Questions to Explore',
-    questionsSub: "These questions don't challenge whether you're right — they reveal what would need to be true for the reasoning to hold.",
-    agency: 'What This Argument Is Actually Resting On',
-  },
-}
 
 function getWhatThisMeans(overall: number, issueCount: number): string {
   if (overall < 4)
@@ -85,18 +58,105 @@ function getWhatThisMeans(overall: number, issueCount: number): string {
   return `The reasoning shows relatively strong structure. A few targeted questions could make it more robust.`
 }
 
-const MODE_OPTIONS: { id: Mode; label: string }[] = [
-  { id: 'defend',    label: '🛡 Help me not lose this argument' },
-  { id: 'challenge', label: '⚔️ Help me break someone else\'s argument' },
-  { id: 'audit',     label: '🔍 Help me catch my own sloppy thinking' },
-]
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
+      style={{
+        flexShrink: 0,
+        fontSize: '0.75rem',
+        padding: '4px 8px',
+        border: '1px solid #2e2e2e',
+        background: 'transparent',
+        color: copied ? '#c8a84b' : '#444440',
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+        fontFamily: 'monospace',
+        transition: 'color 0.15s'
+      }}
+    >
+      {copied ? 'copied' : 'copy'}
+    </button>
+  )
+}
+
+function QuestionGroup({
+  title,
+  subhead,
+  questions,
+  startIndex,
+  isLast
+}: {
+  title: string
+  subhead: string
+  questions: string[]
+  startIndex: number
+  isLast?: boolean
+}) {
+  return (
+    <div style={{
+      marginBottom: isLast ? 0 : '32px',
+      paddingBottom: isLast ? 0 : '24px',
+      borderBottom: isLast ? 'none' : '1px solid #2e2e2e'
+    }}>
+      <h3 style={{
+        fontFamily: 'monospace',
+        fontSize: '0.8rem',
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        color: '#c8a84b',
+        marginBottom: '6px',
+        marginTop: 0
+      }}>
+        {title}
+      </h3>
+      <p style={{
+        fontFamily: 'monospace',
+        fontSize: '0.8rem',
+        color: '#666660',
+        marginBottom: '16px',
+        fontStyle: 'italic',
+        marginTop: 0
+      }}>
+        {subhead}
+      </p>
+      <ol style={{
+        paddingLeft: 0,
+        listStyle: 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        margin: 0
+      }}>
+        {questions.map((q, i) => (
+          <li key={i} style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '12px',
+            fontFamily: 'monospace',
+            fontSize: '0.9rem',
+            lineHeight: 1.6,
+            color: '#e8e8e0'
+          }}>
+            <span>
+              <span style={{ color: '#444440', marginRight: '8px' }}>{startIndex + i}.</span>
+              {q}
+            </span>
+            <CopyButton text={q} />
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
 
 export default function Home() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState<FilterType>('all')
-  const [mode, setMode] = useState<Mode>('audit')
 
   const handleAnalyze = async (text: string, sourceType: string) => {
     setIsLoading(true)
@@ -106,7 +166,7 @@ export default function Home() {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, sourceType, mode }),
+        body: JSON.stringify({ text, sourceType }),
       })
       const data = await res.json()
       if (data.error) setError(data.error)
@@ -120,7 +180,6 @@ export default function Home() {
 
   const single = result?.mode === 'single' ? result : null
   const multi = result?.mode === 'multi-speaker' ? result : null
-  const labels = MODE_LABELS[mode]
 
   const filteredIssues = single?.biasesAndFallacies.filter(issue => {
     if (filter === 'all') return true
@@ -148,23 +207,6 @@ export default function Home() {
             Text, PDF, article URL, or YouTube link.
           </p>
         </header>
-
-        {/* ── Mode selector ── */}
-        <div className="flex flex-col md:flex-row gap-2 mb-4">
-          {MODE_OPTIONS.map(({ id, label }) => (
-            <button
-              key={id}
-              onClick={() => setMode(id)}
-              className={`flex-1 py-2.5 px-4 text-xs font-mono border transition-colors text-left md:text-center ${
-                mode === id
-                  ? 'border-[#c8a84b] text-[#c8a84b] bg-[#c8a84b10]'
-                  : 'border-[#2e2e2e] text-[#444440] hover:border-[#666660] hover:text-[#888880]'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
 
         <section className="mb-12">
           <InputTabs onAnalyze={handleAnalyze} isLoading={isLoading} />
@@ -201,7 +243,7 @@ export default function Home() {
         {single && !isLoading && (
           <div className="animate-fadeIn">
 
-            {/* ── 1. Reasoning Breakdown ── */}
+            {/* 1. Reasoning Breakdown */}
             <section className="mb-6">
               <ResultsSummary summary={single.summary} overall={single.floater.overall} fromCache={single.fromCache} />
               <div className="mt-4 border border-[#2e2e2e] p-4">
@@ -212,17 +254,17 @@ export default function Home() {
               </div>
             </section>
 
-            {/* ── 2. FLOATER Radar Chart only ── */}
+            {/* 2. FLOATER Radar Chart */}
             <section className="mb-6">
               <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-4">FLOATER Scorecard</h2>
               <FloaterChart scores={single.floater.scores} />
             </section>
 
-            {/* ── 3. Patterns Detected ── */}
+            {/* 3. Reasoning Patterns */}
             <section className="mb-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase">
-                  {labels.patterns} ({single.biasesAndFallacies.length})
+                  Reasoning Patterns Detected ({single.biasesAndFallacies.length})
                 </h2>
                 <div className="flex gap-1">
                   {(['all', 'fallacies', 'biases'] as FilterType[]).map(f => (
@@ -247,7 +289,7 @@ export default function Home() {
               )}
             </section>
 
-            {/* ── 4. Agency Block ── */}
+            {/* 4. Agency Block */}
             {single.agency && single.agency.bullets.length > 0 && (
               <div style={{
                 borderLeft: '3px solid #c8a84b',
@@ -262,11 +304,10 @@ export default function Home() {
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
                   marginBottom: '12px',
+                  marginTop: 0,
                   color: '#c8a84b'
                 }}>
-                  {mode === 'defend' && 'What to Fix Before You Ship This'}
-                  {mode === 'challenge' && 'Where to Press and In What Order'}
-                  {mode === 'audit' && 'What This Argument Is Actually Resting On'}
+                  What This Argument Is Resting On
                 </h3>
                 <p style={{
                   fontFamily: 'monospace',
@@ -274,6 +315,7 @@ export default function Home() {
                   color: '#666660',
                   fontStyle: 'italic',
                   marginBottom: '12px',
+                  marginTop: 0,
                   lineHeight: '1.6'
                 }}>
                   {single.agency.framing}
@@ -295,11 +337,7 @@ export default function Home() {
                       lineHeight: '1.6',
                       color: '#e8e8e0'
                     }}>
-                      <span style={{
-                        position: 'absolute',
-                        left: 0,
-                        color: '#c8a84b'
-                      }}>→</span>
+                      <span style={{ position: 'absolute', left: 0, color: '#c8a84b' }}>→</span>
                       {bullet}
                     </li>
                   ))}
@@ -307,13 +345,30 @@ export default function Home() {
               </div>
             )}
 
-            {/* ── 5. Questions ── */}
+            {/* 5. Questions */}
             <section className="mb-6">
-              <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-2">{labels.questions}</h2>
-              <p className="text-xs font-mono text-[#444440] mb-4 leading-relaxed">
-                {labels.questionsSub}
-              </p>
-              <QuestionList questions={single.followUpQuestions} />
+              <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-6">
+                Questions That Pressure-Test This Argument
+              </h2>
+              <QuestionGroup
+                title="If you're defending this position"
+                subhead="Questions a critic will use against you — have your answers ready."
+                questions={single.followUpQuestions.defend}
+                startIndex={1}
+              />
+              <QuestionGroup
+                title="If you're challenging this argument"
+                subhead="Sequenced by leverage — start with the first question."
+                questions={single.followUpQuestions.challenge}
+                startIndex={4}
+              />
+              <QuestionGroup
+                title="If you're auditing your own thinking"
+                subhead="Honest questions worth sitting with — not rhetorical."
+                questions={single.followUpQuestions.audit}
+                startIndex={7}
+                isLast
+              />
             </section>
 
           </div>

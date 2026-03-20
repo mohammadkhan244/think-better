@@ -5,9 +5,12 @@ const client = new Anthropic()
 export async function generateQuestions(
   text: string,
   floaterScores: Record<string, { score: number; justification: string }>,
-  detectedIssues: { name: string; definition: string }[],
-  mode: 'defend' | 'challenge' | 'audit' = 'audit'
-): Promise<string[]> {
+  detectedIssues: { name: string; definition: string }[]
+): Promise<{
+  defend: string[]
+  challenge: string[]
+  audit: string[]
+}> {
   const weakDimensions = Object.entries(floaterScores)
     .filter(([, v]) => v.score <= 5)
     .map(([k, v]) => `${k} (score ${v.score}): ${v.justification}`)
@@ -17,19 +20,27 @@ export async function generateQuestions(
     .map(i => `- ${i.name}: ${i.definition}`)
     .join('\n')
 
-  const modeInstructions = {
-    defend: `You are a sharp adversarial critic preparing someone to DEFEND this argument. Generate 5–8 questions that a skeptic, opponent, or hostile interviewer would use to attack this argument. Frame each question as if the critic is asking it directly. The person reading these needs to have their answers ready BEFORE they present this argument. Make the questions pointed, specific, and genuinely threatening to the argument's weak points.`,
-    challenge: `You are a strategic advisor helping someone CHALLENGE and dismantle this argument. Generate 5–8 questions the reader should PUT TO the person making this argument. Each question should target a specific structural weakness, hidden assumption, or unsupported leap. Frame questions as tools — precision instruments for exposing where the argument cannot hold under pressure.`,
-    audit: `You are a Socratic reasoning coach helping someone AUDIT their own thinking. Generate 5–8 reflective questions the author should ask themselves. These questions don't attack — they illuminate. Each one should reveal a hidden assumption, an untested prerequisite, or a place where the reasoning depends on something the author may not have examined. Frame questions as honest self-inquiry, not criticism.`
-  }
+  const prompt = `You are a critical thinking coach analyzing an argument from three perspectives.
+Generate exactly 3 questions for each of the three categories below.
+Each question must be specific to the actual topic and claims in the text.
+Do not use generic questions. Do not declare the claim true or false.
 
-  const prompt = `${modeInstructions[mode]}
+DEFEND QUESTIONS (3):
+These are adversarial questions a hostile critic or opponent would use to attack this argument.
+Frame them as direct challenges. Make them genuinely threatening to the argument's weak points.
+The person reading these needs to have answers ready before presenting this argument.
+Tone: pointed, specific, prosecutorial against the author's own position.
 
-RULES:
-- Questions must be specific to the actual topic and claims in the text — NOT generic
-- Each question should target a real weakness from the detected issues or FLOATER gaps below
-- Do not declare the claim true or false
-- 5–8 questions maximum
+CHALLENGE QUESTIONS (3):
+These are questions to put directly to whoever made this argument.
+Each question should target a specific structural weakness, hidden assumption, or unsupported leap.
+Sequenced by leverage — the most damaging question first.
+Tone: interrogation tools, not conversation starters.
+
+AUDIT QUESTIONS (3):
+These are uncomfortable honest questions the author should ask themselves.
+Not rhetorical. Not attacking. Genuinely open — the kind that reveal what the argument is protecting.
+Tone: honest self-inquiry, the questions a trusted advisor would ask privately.
 
 TEXT:
 """
@@ -42,22 +53,34 @@ ${weakDimensions || 'None identified as weak.'}
 DETECTED ISSUES:
 ${issuesList || 'None detected.'}
 
-Return ONLY a valid JSON array of question strings. No markdown, no preamble.
-Example: ["Question one?", "Question two?"]`
-
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1000,
-    temperature: 0.7,
-    messages: [{ role: 'user', content: prompt }]
-  })
-
-  const raw = response.content[0].type === 'text' ? response.content[0].text : '[]'
+Return ONLY this exact JSON structure, nothing else:
+{
+  "defend": ["question 1", "question 2", "question 3"],
+  "challenge": ["question 1", "question 2", "question 3"],
+  "audit": ["question 1", "question 2", "question 3"]
+}`
 
   try {
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1500,
+      temperature: 0.7,
+      messages: [{ role: 'user', content: prompt }]
+    })
+
+    const raw = response.content[0].type === 'text' ? response.content[0].text : ''
     const clean = raw.replace(/```json|```/g, '').trim()
-    return JSON.parse(clean)
+    const parsed = JSON.parse(clean)
+    return {
+      defend: parsed.defend || [],
+      challenge: parsed.challenge || [],
+      audit: parsed.audit || []
+    }
   } catch {
-    return ['What evidence would cause you to reconsider this conclusion?']
+    return {
+      defend: ['What evidence would cause you to abandon this position?'],
+      challenge: ['What specific data supports this claim?'],
+      audit: ['Why does this conclusion feel obvious to me?']
+    }
   }
 }
