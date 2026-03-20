@@ -3,11 +3,9 @@
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import InputTabs from '@/components/InputTabs'
-import FloaterBreakdown from '@/components/FloaterBreakdown'
 import BiasCard from '@/components/BiasCard'
 import QuestionList from '@/components/QuestionList'
 import ResultsSummary from '@/components/ResultsSummary'
-import ImprovementPanel from '@/components/ImprovementPanel'
 import SpeakerResults from '@/components/SpeakerResults'
 import type { Improvement } from '@/lib/improvements'
 
@@ -48,7 +46,6 @@ interface MultiResult {
 
 type AnalysisResult = SingleResult | MultiResult
 type FilterType = 'all' | 'fallacies' | 'biases'
-type MobileTab = 'terrain' | 'floater' | 'patterns' | 'questions'
 
 const MODE_LABELS: Record<Mode, {
   results: string
@@ -88,13 +85,6 @@ function getWhatThisMeans(overall: number, issueCount: number): string {
   return `The reasoning shows relatively strong structure. A few targeted questions could make it more robust.`
 }
 
-const TABS: { id: MobileTab; icon: string; label: string }[] = [
-  { id: 'terrain',   icon: '🧭', label: 'Terrain'   },
-  { id: 'patterns',  icon: '🔍', label: 'Patterns'  },
-  { id: 'floater',   icon: '📊', label: 'FLOATER'   },
-  { id: 'questions', icon: '❓', label: 'Questions'  },
-]
-
 const MODE_OPTIONS: { id: Mode; label: string }[] = [
   { id: 'defend',    label: '🛡 Help me not lose this argument' },
   { id: 'challenge', label: '⚔️ Help me break someone else\'s argument' },
@@ -106,14 +96,12 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState<FilterType>('all')
-  const [mobileTab, setMobileTab] = useState<MobileTab>('questions')
   const [mode, setMode] = useState<Mode>('audit')
 
   const handleAnalyze = async (text: string, sourceType: string) => {
     setIsLoading(true)
     setError('')
     setResult(null)
-    setMobileTab('questions')
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
@@ -139,12 +127,6 @@ export default function Home() {
     if (filter === 'fallacies') return issue.type === 'fallacy'
     return issue.type === 'bias'
   }) ?? []
-
-  function tabClass(tab: MobileTab) {
-    return mobileTab === tab
-      ? 'block mb-10'
-      : 'hidden md:block md:mb-10'
-  }
 
   return (
     <main className="min-h-screen bg-[#0e0e0e] text-[#e8e8e0]">
@@ -217,10 +199,10 @@ export default function Home() {
 
         {/* ── Single-speaker results ── */}
         {single && !isLoading && (
-          <div className="animate-fadeIn pb-[56px] md:pb-0">
+          <div className="animate-fadeIn">
 
-            {/* ── Tab 1: Terrain ── */}
-            <section className={tabClass('terrain')}>
+            {/* ── 1. Reasoning Breakdown ── */}
+            <section className="mb-6">
               <ResultsSummary summary={single.summary} overall={single.floater.overall} fromCache={single.fromCache} />
               <div className="mt-4 border border-[#2e2e2e] p-4">
                 <p className="text-xs font-mono text-[#444440] tracking-widest uppercase mb-2">What This Means</p>
@@ -230,24 +212,14 @@ export default function Home() {
               </div>
             </section>
 
-            {/* ── Tab 3: FLOATER ── */}
-            <section className={tabClass('floater')}>
+            {/* ── 2. FLOATER Radar Chart only ── */}
+            <section className="mb-6">
               <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-4">FLOATER Scorecard</h2>
               <FloaterChart scores={single.floater.scores} />
-              <div className="mt-4">
-                <FloaterBreakdown scores={single.floater.scores} />
-              </div>
-              {single.improvements.length > 0 && (
-                <div className="mt-6">
-                  <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-1">How to Strengthen This</h2>
-                  <p className="text-xs font-mono text-[#444440] mb-4">Specific gaps, what to read, and how to reframe.</p>
-                  <ImprovementPanel improvements={single.improvements} />
-                </div>
-              )}
             </section>
 
-            {/* ── Tab 2: Patterns ── */}
-            <section className={tabClass('patterns')}>
+            {/* ── 3. Patterns Detected ── */}
+            <section className="mb-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase">
                   {labels.patterns} ({single.biasesAndFallacies.length})
@@ -275,63 +247,74 @@ export default function Home() {
               )}
             </section>
 
-            {/* ── Tab 4: Questions + Agency ── */}
-            <section className={tabClass('questions')}>
+            {/* ── 4. Agency Block ── */}
+            {single.agency && single.agency.bullets.length > 0 && (
+              <div style={{
+                borderLeft: '3px solid #c8a84b',
+                padding: '16px',
+                marginTop: '24px',
+                marginBottom: '24px',
+                background: 'rgba(200, 168, 75, 0.06)'
+              }}>
+                <h3 style={{
+                  fontFamily: 'monospace',
+                  fontSize: '0.75rem',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  marginBottom: '12px',
+                  color: '#c8a84b'
+                }}>
+                  {mode === 'defend' && 'What to Fix Before You Ship This'}
+                  {mode === 'challenge' && 'Where to Press and In What Order'}
+                  {mode === 'audit' && 'What This Argument Is Actually Resting On'}
+                </h3>
+                <p style={{
+                  fontFamily: 'monospace',
+                  fontSize: '0.875rem',
+                  color: '#666660',
+                  fontStyle: 'italic',
+                  marginBottom: '12px',
+                  lineHeight: '1.6'
+                }}>
+                  {single.agency.framing}
+                </p>
+                <ul style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px'
+                }}>
+                  {single.agency.bullets.map((bullet, i) => (
+                    <li key={i} style={{
+                      paddingLeft: '20px',
+                      position: 'relative',
+                      fontFamily: 'monospace',
+                      fontSize: '0.9rem',
+                      lineHeight: '1.6',
+                      color: '#e8e8e0'
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        left: 0,
+                        color: '#c8a84b'
+                      }}>→</span>
+                      {bullet}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* ── 5. Questions ── */}
+            <section className="mb-6">
               <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-2">{labels.questions}</h2>
               <p className="text-xs font-mono text-[#444440] mb-4 leading-relaxed">
                 {labels.questionsSub}
               </p>
               <QuestionList questions={single.followUpQuestions} />
-
-              {single.agency && single.agency.bullets.length > 0 && (
-                <div className="mt-8">
-                  <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-4">
-                    {labels.agency}
-                  </h2>
-                  <div style={{ borderLeft: '3px solid #c8a84b', padding: '16px' }}>
-                    <p className="text-xs font-mono text-[#666660] italic mb-3 leading-relaxed">
-                      {single.agency.framing}
-                    </p>
-                    <ul className="list-none p-0 m-0 flex flex-col gap-3">
-                      {single.agency.bullets.map((bullet, i) => (
-                        <li key={i} className="relative pl-5 text-sm font-mono text-[#e8e8e0] leading-relaxed">
-                          <span className="absolute left-0 text-[#c8a84b]">→</span>
-                          {bullet}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
             </section>
-
-            {/* ── Mobile bottom tab bar ── */}
-            <div
-              className="fixed bottom-0 left-0 right-0 md:hidden z-50 bg-[#0e0e0e] border-t border-[#2e2e2e]"
-              style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-            >
-              <div className="flex h-14">
-                {TABS.map(tab => {
-                  const isActive = mobileTab === tab.id
-                  const count = tab.id === 'patterns' ? single.biasesAndFallacies.length : null
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setMobileTab(tab.id)}
-                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-mono transition-colors ${
-                        isActive ? 'text-[#c8a84b]' : 'text-[#444440]'
-                      }`}
-                    >
-                      <span className="text-base leading-none">{tab.icon}</span>
-                      <span>
-                        {tab.label}
-                        {count !== null && count > 0 ? ` (${count})` : ''}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
 
           </div>
         )}
