@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { runFLOATER } from '@/lib/floater'
 import { runDetectors } from '@/lib/detectors'
 import { generateQuestions } from '@/lib/questions'
+import { generateAgency } from '@/lib/agency'
 import { generateImprovements, enrichImprovementsWithEvidence } from '@/lib/improvements'
 import { getCacheKey, getFromCache, setInCache } from '@/lib/cache'
 import { detectSpeakers, diarizeWithLLM, groupBySpeaker } from '@/lib/speakers'
 
-// Heuristic: does this text look like a back-and-forth conversation?
-// Checks for short exchanges and high question density.
+type Mode = 'defend' | 'challenge' | 'audit'
+
 function looksLikeConversation(text: string): boolean {
   const lines = text.split('\n').filter(l => l.trim().length > 0)
   if (lines.length < 6) return false
@@ -18,14 +19,22 @@ function looksLikeConversation(text: string): boolean {
   return shortLineRatio > 0.55 || questionRatio > 0.12
 }
 
-async function analyzeSingleText(text: string) {
+async function analyzeSingleText(text: string, mode: Mode) {
   const floaterResult = runFLOATER(text)
   const detectedIssues = runDetectors(text)
   const rawImprovements = generateImprovements(floaterResult.scores, detectedIssues)
 
-  const [improvements, questions] = await Promise.all([
+  const [improvements, questions, agency] = await Promise.all([
     enrichImprovementsWithEvidence(text, rawImprovements).catch(() => rawImprovements),
-    generateQuestions(text, floaterResult.scores, detectedIssues).catch(() => [] as string[]),
+    generateQuestions(text, floaterResult.scores, detectedIssues, mode).catch(() => [] as string[]),
+    generateAgency(text, floaterResult.scores, detectedIssues, mode).catch(() => ({
+      framing: 'Here is what this argument is resting on.',
+      bullets: [
+        'The weakest link in this argument is the evidence dimension — the core claims are asserted without sourcing.',
+        'At least one alternative explanation is not addressed.',
+        'The conclusion is stated with more certainty than the supporting points justify.'
+      ]
+    })),
   ])
 
   const overall = floaterResult.overall
@@ -36,12 +45,12 @@ async function analyzeSingleText(text: string) {
     (overall >= 7 ? 'Relatively strong reasoning. ' : overall >= 4 ? 'Moderate reasoning quality with notable gaps. ' : 'Significant reasoning weaknesses. ') +
     (issueCount > 0 ? `${issueCount} bias or fallacy pattern(s) detected (${highConfidence} high-confidence).` : 'No common bias or fallacy patterns detected.')
 
-  return { floater: floaterResult, biasesAndFallacies: detectedIssues, improvements, followUpQuestions: questions, summary }
+  return { floater: floaterResult, biasesAndFallacies: detectedIssues, improvements, followUpQuestions: questions, agency, summary }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, sourceType } = await req.json()
+    const { text, sourceType, mode = 'audit' } = await req.json()
 
     if (!text || typeof text !== 'string') {
       return NextResponse.json({ error: 'Text is required.' }, { status: 400 })
@@ -58,16 +67,13 @@ export async function POST(req: NextRequest) {
     }
 
     const noCache = req.nextUrl.searchParams.get('nocache') === '1'
-    const cacheKey = getCacheKey(trimmed + (sourceType ?? ''))
+    const cacheKey = getCacheKey(trimmed + '::' + mode + (sourceType ?? ''))
     if (!noCache) {
       const cached = getFromCache(cacheKey)
       if (cached) return NextResponse.json({ ...cached, fromCache: true, cacheStatus: 'hit' })
     }
 
     // ── Auto speaker detection ────────────────────────────────────────────────
-    // Step 1: deterministic label scan (free, no LLM)
-    // Step 2: if no labels — YouTube always tries LLM diarization;
-    //         text/PDF tries LLM only if it looks conversational
     let segments = detectSpeakers(trimmed)
     let diarizationMethod: 'deterministic' | 'llm' | 'none' = segments ? 'deterministic' : 'none'
 
@@ -83,7 +89,6 @@ export async function POST(req: NextRequest) {
     if (segments && segments.length >= 2) {
       const blocks = groupBySpeaker(segments)
 
-      // Detect on full text, attribute hits to the speaker who said them
       const allIssues = runDetectors(trimmed)
       const issuesBySpeaker = new Map<string, typeof allIssues>(
         blocks.map(b => [b.speaker, []])
@@ -106,7 +111,7 @@ export async function POST(req: NextRequest) {
 
           const [improvements, questions] = await Promise.all([
             enrichImprovementsWithEvidence(block.text, rawImprovements).catch(() => rawImprovements),
-            generateQuestions(block.text, floaterResult.scores, detectedIssues).catch(() => [] as string[]),
+            generateQuestions(block.text, floaterResult.scores, detectedIssues, mode).catch(() => [] as string[]),
           ])
 
           const overall = floaterResult.overall
@@ -131,7 +136,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Single-speaker path ───────────────────────────────────────────────────
-    const analysis = await analyzeSingleText(trimmed)
+    const analysis = await analyzeSingleText(trimmed, mode)
 
     const overall = analysis.floater.overall
     const issueCount = analysis.biasesAndFallacies.length
@@ -148,6 +153,7 @@ export async function POST(req: NextRequest) {
       biasesAndFallacies: analysis.biasesAndFallacies,
       improvements: analysis.improvements,
       followUpQuestions: analysis.followUpQuestions,
+      agency: analysis.agency,
       summary,
       fromCache: false,
     }

@@ -13,12 +13,20 @@ import type { Improvement } from '@/lib/improvements'
 
 const FloaterChart = dynamic(() => import('@/components/FloaterChart'), { ssr: false })
 
+type Mode = 'defend' | 'challenge' | 'audit'
+
+interface Agency {
+  framing: string
+  bullets: string[]
+}
+
 interface SingleResult {
   mode: 'single'
   floater: { scores: Record<string, { score: number; justification: string }>; overall: number }
   biasesAndFallacies: { name: string; type: 'bias' | 'fallacy'; definition: string; matchedText: string; confidence: 'HIGH' | 'MEDIUM' | 'LOW'; floaterDimension: string }[]
   improvements: Improvement[]
   followUpQuestions: string[]
+  agency?: Agency
   summary: string
   fromCache: boolean
 }
@@ -42,6 +50,36 @@ type AnalysisResult = SingleResult | MultiResult
 type FilterType = 'all' | 'fallacies' | 'biases'
 type MobileTab = 'terrain' | 'floater' | 'patterns' | 'questions'
 
+const MODE_LABELS: Record<Mode, {
+  results: string
+  patterns: string
+  questions: string
+  questionsSub: string
+  agency: string
+}> = {
+  defend: {
+    results: 'Where This Argument Is Most Exposed',
+    patterns: 'Weaknesses to Shore Up',
+    questions: 'Questions Someone Will Use Against You',
+    questionsSub: 'These are the exact questions a sharp critic will ask. Have your answers ready.',
+    agency: 'What to Fix Before You Ship This',
+  },
+  challenge: {
+    results: 'Where This Argument Is Most Vulnerable',
+    patterns: 'Weaknesses to Exploit',
+    questions: 'Questions to Put to This Argument',
+    questionsSub: 'Use these to probe the argument. Each one targets a specific weak point.',
+    agency: 'Where to Press and In What Order',
+  },
+  audit: {
+    results: 'Reasoning Breakdown',
+    patterns: 'Reasoning Patterns Detected',
+    questions: 'Questions to Explore',
+    questionsSub: "These questions don't challenge whether you're right — they reveal what would need to be true for the reasoning to hold.",
+    agency: 'What This Argument Is Actually Resting On',
+  },
+}
+
 function getWhatThisMeans(overall: number, issueCount: number): string {
   if (overall < 4)
     return `This reasoning contains ${issueCount > 0 ? `${issueCount} structural pattern${issueCount !== 1 ? 's' : ''}` : 'several areas'} where conclusions depend on untested assumptions. The questions below will sharpen any decision built on top of it.`
@@ -57,12 +95,19 @@ const TABS: { id: MobileTab; icon: string; label: string }[] = [
   { id: 'questions', icon: '❓', label: 'Questions'  },
 ]
 
+const MODE_OPTIONS: { id: Mode; label: string }[] = [
+  { id: 'defend',    label: '🛡 Defend my argument' },
+  { id: 'challenge', label: '⚔️ Challenge this argument' },
+  { id: 'audit',     label: '🔍 Audit my thinking' },
+]
+
 export default function Home() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState<FilterType>('all')
   const [mobileTab, setMobileTab] = useState<MobileTab>('questions')
+  const [mode, setMode] = useState<Mode>('audit')
 
   const handleAnalyze = async (text: string, sourceType: string) => {
     setIsLoading(true)
@@ -73,7 +118,7 @@ export default function Home() {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, sourceType }),
+        body: JSON.stringify({ text, sourceType, mode }),
       })
       const data = await res.json()
       if (data.error) setError(data.error)
@@ -87,6 +132,7 @@ export default function Home() {
 
   const single = result?.mode === 'single' ? result : null
   const multi = result?.mode === 'multi-speaker' ? result : null
+  const labels = MODE_LABELS[mode]
 
   const filteredIssues = single?.biasesAndFallacies.filter(issue => {
     if (filter === 'all') return true
@@ -94,7 +140,6 @@ export default function Home() {
     return issue.type === 'bias'
   }) ?? []
 
-  // Returns classes that show on the active mobile tab, and always on desktop
   function tabClass(tab: MobileTab) {
     return mobileTab === tab
       ? 'block mb-10'
@@ -111,10 +156,33 @@ export default function Home() {
           <p className="font-mono text-xs text-[#888880] tracking-widest uppercase mb-6">
             Not what to think — how to think.
           </p>
-          <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed">
-            Map the hidden assumptions inside any argument.
+          <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed mb-1">
+            Most people argue from conviction. This shows you what&apos;s underneath it.
+          </p>
+          <p className="text-xs font-mono text-[#666660] leading-relaxed mb-1">
+            Paste any argument, article, or claim. Get back exactly where it&apos;s strong, where it&apos;s exposed, and the questions that pressure-test it.
+          </p>
+          <p className="text-xs font-mono text-[#444440]">
+            Text, PDF, article URL, or YouTube link.
           </p>
         </header>
+
+        {/* ── Mode selector ── */}
+        <div className="flex flex-col md:flex-row gap-2 mb-4">
+          {MODE_OPTIONS.map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setMode(id)}
+              className={`flex-1 py-2.5 px-4 text-xs font-mono border transition-colors text-left md:text-center ${
+                mode === id
+                  ? 'border-[#c8a84b] text-[#c8a84b] bg-[#c8a84b10]'
+                  : 'border-[#2e2e2e] text-[#444440] hover:border-[#666660] hover:text-[#888880]'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         <section className="mb-12">
           <InputTabs onAnalyze={handleAnalyze} isLoading={isLoading} />
@@ -162,7 +230,7 @@ export default function Home() {
               </div>
             </section>
 
-            {/* ── Tab 3: FLOATER (+ improvements) ── */}
+            {/* ── Tab 3: FLOATER ── */}
             <section className={tabClass('floater')}>
               <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-4">FLOATER Scorecard</h2>
               <FloaterChart scores={single.floater.scores} />
@@ -182,7 +250,7 @@ export default function Home() {
             <section className={tabClass('patterns')}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase">
-                  Reasoning Patterns ({single.biasesAndFallacies.length})
+                  {labels.patterns} ({single.biasesAndFallacies.length})
                 </h2>
                 <div className="flex gap-1">
                   {(['all', 'fallacies', 'biases'] as FilterType[]).map(f => (
@@ -207,13 +275,34 @@ export default function Home() {
               )}
             </section>
 
-            {/* ── Tab 4: Questions ── */}
+            {/* ── Tab 4: Questions + Agency ── */}
             <section className={tabClass('questions')}>
-              <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-2">Questions to Sharpen This Reasoning</h2>
+              <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-2">{labels.questions}</h2>
               <p className="text-xs font-mono text-[#444440] mb-4 leading-relaxed">
-                These questions don&apos;t challenge whether you&apos;re right — they reveal what would need to be true for the reasoning to hold.
+                {labels.questionsSub}
               </p>
               <QuestionList questions={single.followUpQuestions} />
+
+              {single.agency && single.agency.bullets.length > 0 && (
+                <div className="mt-8">
+                  <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-4">
+                    {labels.agency}
+                  </h2>
+                  <div style={{ borderLeft: '3px solid #c8a84b', padding: '16px' }}>
+                    <p className="text-xs font-mono text-[#666660] italic mb-3 leading-relaxed">
+                      {single.agency.framing}
+                    </p>
+                    <ul className="list-none p-0 m-0 flex flex-col gap-3">
+                      {single.agency.bullets.map((bullet, i) => (
+                        <li key={i} className="relative pl-5 text-sm font-mono text-[#e8e8e0] leading-relaxed">
+                          <span className="absolute left-0 text-[#c8a84b]">→</span>
+                          {bullet}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
             </section>
 
             {/* ── Mobile bottom tab bar ── */}

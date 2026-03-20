@@ -13,6 +13,25 @@ function countWords(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0
 }
 
+const EXAMPLE_CHIPS = [
+  {
+    label: 'A health claim I\'m skeptical of',
+    text: "Sugar is just sugar. Your body can't tell the difference between the fructose in a grape and the sugar in a Hershey's Kiss, so there's no reason to avoid candy if you're already eating fruit. The science on this is settled — calories in, calories out is all that matters. Anyone who says otherwise is selling you something.",
+  },
+  {
+    label: 'Something my boss said',
+    text: "We need to move fast on this. The market window is closing and if we don't ship in the next two weeks we'll lose our advantage. I know the QA isn't done but honestly our competitors aren't perfect either. We can fix bugs after launch — that's what updates are for. The team that ships first wins.",
+  },
+  {
+    label: 'A news headline or op-ed',
+    text: "Remote work is destroying innovation and corporate culture. Every major breakthrough in tech happened in an office. Companies that went fully remote are already seeing the consequences — declining output, disengaged employees, and a generation of workers who don't know how to collaborate. The data is clear: in-person teams outperform remote ones.",
+  },
+  {
+    label: 'A position I\'m about to defend',
+    text: "AI will eliminate more jobs than it creates. Every major technological shift in history has displaced workers, and this one moves faster than any before it. The jobs it creates require skills most displaced workers don't have and can't realistically acquire. Net job loss is inevitable.",
+  },
+]
+
 export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
   const [activeTab, setActiveTab] = useState<Tab>('text')
   const [textValue, setTextValue] = useState('')
@@ -157,14 +176,32 @@ export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
 
       <div className="p-4">
         {activeTab === 'text' && (
-          <textarea
-            className="w-full h-48 bg-transparent text-[#e8e8e0] font-mono text-sm resize-none outline-none placeholder-[#444440] leading-relaxed"
-            placeholder="Paste your argument, article, transcript, or claim here..."
-            value={textValue}
-            onChange={(e) => setTextValue(e.target.value)}
-            onInput={(e) => setTextValue((e.target as HTMLTextAreaElement).value)}
-            maxLength={48000}
-          />
+          <div>
+            <textarea
+              className="w-full h-48 bg-transparent text-[#e8e8e0] font-mono text-sm resize-none outline-none placeholder-[#444440] leading-relaxed"
+              placeholder="Paste your argument, article, transcript, or claim here..."
+              value={textValue}
+              onChange={(e) => setTextValue(e.target.value)}
+              onInput={(e) => setTextValue((e.target as HTMLTextAreaElement).value)}
+              maxLength={48000}
+            />
+            {!textValue && (
+              <div className="mt-3">
+                <p className="text-xs font-mono text-[#444440] mb-2">Not sure what to paste? Try one of these:</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {EXAMPLE_CHIPS.map((chip) => (
+                    <button
+                      key={chip.label}
+                      onClick={() => setTextValue(chip.text)}
+                      className="text-left text-xs font-mono text-[#666660] border border-[#2e2e2e] px-2.5 py-1.5 hover:border-[#c8a84b] hover:text-[#c8a84b] transition-colors leading-relaxed"
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {activeTab === 'pdf' && (

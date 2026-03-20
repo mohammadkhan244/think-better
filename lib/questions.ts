@@ -5,7 +5,8 @@ const client = new Anthropic()
 export async function generateQuestions(
   text: string,
   floaterScores: Record<string, { score: number; justification: string }>,
-  detectedIssues: { name: string; definition: string }[]
+  detectedIssues: { name: string; definition: string }[],
+  mode: 'defend' | 'challenge' | 'audit' = 'audit'
 ): Promise<string[]> {
   const weakDimensions = Object.entries(floaterScores)
     .filter(([, v]) => v.score <= 5)
@@ -16,18 +17,21 @@ export async function generateQuestions(
     .map(i => `- ${i.name}: ${i.definition}`)
     .join('\n')
 
-  const prompt = `You are a Socratic reasoning coach. A piece of text has been analyzed for reasoning quality.
+  const modeInstructions = {
+    defend: `You are a sharp adversarial critic preparing someone to DEFEND this argument. Generate 5–8 questions that a skeptic, opponent, or hostile interviewer would use to attack this argument. Frame each question as if the critic is asking it directly. The person reading these needs to have their answers ready BEFORE they present this argument. Make the questions pointed, specific, and genuinely threatening to the argument's weak points.`,
+    challenge: `You are a strategic advisor helping someone CHALLENGE and dismantle this argument. Generate 5–8 questions the reader should PUT TO the person making this argument. Each question should target a specific structural weakness, hidden assumption, or unsupported leap. Frame questions as tools — precision instruments for exposing where the argument cannot hold under pressure.`,
+    audit: `You are a Socratic reasoning coach helping someone AUDIT their own thinking. Generate 5–8 reflective questions the author should ask themselves. These questions don't attack — they illuminate. Each one should reveal a hidden assumption, an untested prerequisite, or a place where the reasoning depends on something the author may not have examined. Frame questions as honest self-inquiry, not criticism.`
+  }
 
-Your job: Generate 5–8 follow-up questions that would expose the specific gaps in this reasoning.
+  const prompt = `${modeInstructions[mode]}
 
 RULES:
 - Questions must be specific to the actual topic and claims in the text — NOT generic
-- Do not ask "have you considered the evidence?" — ask about the specific evidence or claim
-- Each question should target a real weakness identified below
-- Questions should help the reader think more clearly, not embarrass the author
+- Each question should target a real weakness from the detected issues or FLOATER gaps below
 - Do not declare the claim true or false
+- 5–8 questions maximum
 
-TEXT (first 1500 words):
+TEXT:
 """
 ${text.slice(0, 6000)}
 """
@@ -35,11 +39,11 @@ ${text.slice(0, 6000)}
 FLOATER WEAKNESSES:
 ${weakDimensions || 'None identified as weak.'}
 
-DETECTED REASONING ISSUES:
+DETECTED ISSUES:
 ${issuesList || 'None detected.'}
 
-Return ONLY a valid JSON array of question strings. No markdown, no preamble, no explanation.
-Example format: ["Question one?", "Question two?"]`
+Return ONLY a valid JSON array of question strings. No markdown, no preamble.
+Example: ["Question one?", "Question two?"]`
 
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
