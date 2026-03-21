@@ -22,6 +22,12 @@ interface Questions {
   audit: string[]
 }
 
+interface BookEntry {
+  title: string
+  author: string
+  why: string
+}
+
 interface SingleResult {
   mode: 'single'
   floater: { scores: Record<string, { score: number; justification: string }>; overall: number }
@@ -30,6 +36,7 @@ interface SingleResult {
   followUpQuestions: Questions
   agency?: Agency
   domain?: { domain: Domain; confidence: string }
+  resources?: { curated: BookEntry[]; topical: BookEntry | null }
   summary: string
   fromCache: boolean
 }
@@ -489,6 +496,52 @@ export default function Home() {
                 isLast
               />
             </section>
+
+            {/* 6. Go Deeper */}
+            {((single.resources?.curated?.length ?? 0) > 0 || single.resources?.topical) && (
+              <div style={{ marginTop: '40px', paddingTop: '24px', borderTop: '1px solid #2e2e2e' }}>
+                <h2 style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c8a84b', marginBottom: '6px', fontWeight: 600 }}>
+                  Go Deeper
+                </h2>
+                <p style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', marginBottom: '20px', fontStyle: 'italic', marginTop: 0 }}>
+                  Three books worth reading based on the reasoning patterns detected and the topic being argued.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {single.resources!.curated.map((book, i) => (
+                    <div key={i} style={{ padding: '14px 16px', border: '1px solid #2e2e2e', background: '#141414' }}>
+                      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#666660', marginBottom: '4px' }}>
+                        On the reasoning
+                      </div>
+                      <div style={{ fontFamily: 'monospace', fontSize: '0.95rem', fontWeight: 600, marginBottom: '2px', color: '#e8e8e0' }}>
+                        {book.title}
+                      </div>
+                      <div style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', marginBottom: '8px' }}>
+                        {book.author}
+                      </div>
+                      <div style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.5' }}>
+                        {book.why}
+                      </div>
+                    </div>
+                  ))}
+                  {single.resources!.topical && (
+                    <div style={{ padding: '14px 16px', border: '1px solid #2e2e2e', background: '#141414' }}>
+                      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#666660', marginBottom: '4px' }}>
+                        On the topic
+                      </div>
+                      <div style={{ fontFamily: 'monospace', fontSize: '0.95rem', fontWeight: 600, marginBottom: '2px', color: '#e8e8e0' }}>
+                        {single.resources!.topical.title}
+                      </div>
+                      <div style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', marginBottom: '8px' }}>
+                        {single.resources!.topical.author}
+                      </div>
+                      <div style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.5' }}>
+                        {single.resources!.topical.why}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
           </div>
         )}

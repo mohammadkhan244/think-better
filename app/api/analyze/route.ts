@@ -7,6 +7,7 @@ import { generateImprovements, enrichImprovementsWithEvidence } from '@/lib/impr
 import { getCacheKey, getFromCache, setInCache } from '@/lib/cache'
 import { detectSpeakers, diarizeWithLLM, groupBySpeaker } from '@/lib/speakers'
 import { detectDomain } from '@/lib/domainDetector'
+import { generateResources } from '@/lib/resources'
 
 function looksLikeConversation(text: string): boolean {
   const lines = text.split('\n').filter(l => l.trim().length > 0)
@@ -152,6 +153,9 @@ export async function POST(req: NextRequest) {
       (issueCount > 0 ? `${issueCount} reasoning pattern(s) detected (${highConfidence} high-confidence). ` : 'No common reasoning patterns detected. ') +
       'Use the follow-up questions to probe the gaps.'
 
+    const domainResult = await detectDomain(trimmed)
+    const resources = await generateResources(trimmed, analysis.biasesAndFallacies, domainResult.domain)
+
     const result = {
       mode: 'single' as const,
       floater: analysis.floater,
@@ -159,7 +163,8 @@ export async function POST(req: NextRequest) {
       improvements: analysis.improvements,
       followUpQuestions: analysis.followUpQuestions,
       agency: analysis.agency,
-      domain: await detectDomain(trimmed),
+      domain: domainResult,
+      resources,
       summary,
       fromCache: false,
     }
