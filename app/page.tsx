@@ -30,8 +30,8 @@ interface BookEntry {
 interface BeliefSystem {
   coreAssumptions: string[]
   loadBearingBeliefs: string[]
-  incentiveSystem: string[]
-  speakerComparison?: string
+  incentiveSystem: string
+  speakerComparison: { speaker: string; coreBeliefs: string[] }[] | null
 }
 
 interface SingleResult {
@@ -568,26 +568,29 @@ export default function Home() {
                     What this argument assumes to be true — never stated, but load-bearing.
                   </p>
                   {single.beliefSystem && single.beliefSystem.coreAssumptions.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+                      {/* Core Assumptions */}
                       {single.beliefSystem.coreAssumptions.length > 0 && (
-                        <div>
-                          <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c8a84b', marginBottom: '12px', marginTop: 0 }}>Core Assumptions</p>
-                          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ marginBottom: '20px' }}>
+                          <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#666660', marginBottom: '8px', marginTop: 0 }}>Core Assumptions</p>
+                          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             {single.beliefSystem.coreAssumptions.map((a, i) => (
-                              <li key={i} style={{ paddingLeft: '20px', position: 'relative', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: '1.6', color: '#e8e8e0' }}>
-                                <span style={{ position: 'absolute', left: 0, color: '#c8a84b' }}>→</span>
-                                {a}
+                              <li key={i} style={{ fontFamily: 'monospace', fontSize: '0.875rem', lineHeight: '1.6', color: '#e8e8e0' }}>
+                                <span style={{ color: '#666660', marginRight: '8px' }}>·</span>{a}
                               </li>
                             ))}
                           </ul>
                         </div>
                       )}
+
+                      {/* Load-Bearing Beliefs */}
                       {single.beliefSystem.loadBearingBeliefs.length > 0 && (
-                        <div>
-                          <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c8a84b', marginBottom: '12px', marginTop: 0 }}>Load-Bearing Beliefs</p>
-                          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ marginBottom: '20px' }}>
+                          <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#666660', marginBottom: '8px', marginTop: 0 }}>If These Were False, The Argument Collapses</p>
+                          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             {single.beliefSystem.loadBearingBeliefs.map((b, i) => (
-                              <li key={i} style={{ paddingLeft: '20px', position: 'relative', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: '1.6', color: '#e8e8e0' }}>
+                              <li key={i} style={{ paddingLeft: '20px', position: 'relative', fontFamily: 'monospace', fontSize: '0.875rem', lineHeight: '1.6', color: '#e8e8e0' }}>
                                 <span style={{ position: 'absolute', left: 0, color: '#c8a84b' }}>→</span>
                                 {b}
                               </li>
@@ -595,27 +598,38 @@ export default function Home() {
                           </ul>
                         </div>
                       )}
-                      {single.beliefSystem.incentiveSystem.length > 0 && (
-                        <div>
-                          <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c8a84b', marginBottom: '12px', marginTop: 0 }}>Incentive System</p>
-                          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {single.beliefSystem.incentiveSystem.map((s, i) => (
-                              <li key={i} style={{ paddingLeft: '20px', position: 'relative', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: '1.6', color: '#e8e8e0' }}>
-                                <span style={{ position: 'absolute', left: 0, color: '#c8a84b' }}>→</span>
-                                {s}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {single.beliefSystem.speakerComparison && (
-                        <div style={{ borderLeft: '2px solid #2e2e2e', paddingLeft: '12px' }}>
-                          <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c8a84b', marginBottom: '8px', marginTop: 0 }}>Speaker Comparison</p>
-                          <p style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: '#666660', lineHeight: '1.6', margin: 0 }}>
-                            {single.beliefSystem.speakerComparison}
+
+                      {/* Incentive System */}
+                      {single.beliefSystem.incentiveSystem && (
+                        <div style={{ marginBottom: '20px' }}>
+                          <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#666660', marginBottom: '8px', marginTop: 0 }}>Incentive System</p>
+                          <p style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: '#666660', fontStyle: 'italic', lineHeight: '1.6', margin: 0, borderLeft: '2px solid #2e2e2e', paddingLeft: '12px' }}>
+                            {single.beliefSystem.incentiveSystem}
                           </p>
                         </div>
                       )}
+
+                      {/* Speaker Comparison */}
+                      {single.beliefSystem.speakerComparison && single.beliefSystem.speakerComparison.length > 0 && (
+                        <div style={{ marginBottom: '20px' }}>
+                          <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#666660', marginBottom: '8px', marginTop: 0 }}>Where The Belief Systems Actually Diverge</p>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {single.beliefSystem.speakerComparison.map((s, i) => (
+                              <div key={i} style={{ padding: '12px 14px', border: '1px solid #2e2e2e', background: '#141414' }}>
+                                <p style={{ fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 700, color: '#c8a84b', marginBottom: '8px', marginTop: 0 }}>{s.speaker}</p>
+                                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  {s.coreBeliefs.map((b, j) => (
+                                    <li key={j} style={{ fontFamily: 'monospace', fontSize: '0.875rem', lineHeight: '1.6', color: '#e8e8e0' }}>
+                                      <span style={{ color: '#666660', marginRight: '8px' }}>·</span>{b}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                     </div>
                   ) : (
                     <p className="text-xs font-mono text-[#444440]">Belief system analysis will appear here.</p>

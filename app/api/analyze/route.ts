@@ -8,6 +8,7 @@ import { getCacheKey, getFromCache, setInCache } from '@/lib/cache'
 import { detectSpeakers, diarizeWithLLM, groupBySpeaker } from '@/lib/speakers'
 import { detectDomain } from '@/lib/domainDetector'
 import { generateResources } from '@/lib/resources'
+import { extractBeliefSystem } from '@/lib/beliefSystem'
 
 function looksLikeConversation(text: string): boolean {
   const lines = text.split('\n').filter(l => l.trim().length > 0)
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
     }
 
     const noCache = req.nextUrl.searchParams.get('nocache') === '1'
-    const cacheKey = getCacheKey(trimmed)
+    const cacheKey = getCacheKey(trimmed + '::v2')
     if (!noCache) {
       const cached = getFromCache(cacheKey)
       if (cached) return NextResponse.json({ ...cached, fromCache: true, cacheStatus: 'hit' })
@@ -155,6 +156,7 @@ export async function POST(req: NextRequest) {
 
     const domainResult = await detectDomain(trimmed)
     const resources = await generateResources(trimmed, analysis.biasesAndFallacies, domainResult.domain)
+    const beliefSystem = await extractBeliefSystem(trimmed, false, [])
 
     const result = {
       mode: 'single' as const,
@@ -165,6 +167,7 @@ export async function POST(req: NextRequest) {
       agency: analysis.agency,
       domain: domainResult,
       resources,
+      beliefSystem,
       summary,
       fromCache: false,
     }
