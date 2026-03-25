@@ -304,11 +304,6 @@ export default function Home() {
   }) ?? []
 
   const patternCount = single?.biasesAndFallacies.length ?? 0
-  const totalQuestions = single
-    ? (single.followUpQuestions.defend?.length ?? 0)
-      + (single.followUpQuestions.challenge?.length ?? 0)
-      + (single.followUpQuestions.audit?.length ?? 0)
-    : 0
   const terrainLabel = single ? getTerrainLabel(single.floater.overall) : ''
   const domainDisplay = single?.domain?.domain &&
     single.domain.domain !== 'general' &&
