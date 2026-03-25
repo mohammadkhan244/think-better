@@ -90,6 +90,10 @@ Return ONLY this exact JSON, nothing else. No markdown. No preamble:
     const clean = raw.replace(/```json|```/g, '').trim()
     const parsed = JSON.parse(clean)
 
+    if (!parsed.coreAssumptions || parsed.coreAssumptions.length === 0) {
+      throw new Error('Empty belief system returned')
+    }
+
     return {
       coreAssumptions: parsed.coreAssumptions || [],
       loadBearingBeliefs: parsed.loadBearingBeliefs || [],
@@ -98,9 +102,14 @@ Return ONLY this exact JSON, nothing else. No markdown. No preamble:
     }
   } catch {
     return {
-      coreAssumptions: [],
-      loadBearingBeliefs: [],
-      incentiveSystem: '',
+      coreAssumptions: [
+        'Belief system analysis could not be completed for this input.',
+        'Try re-analyzing with a longer or more structured argument.'
+      ],
+      loadBearingBeliefs: [
+        'This argument collapses if its core premise is unsupported.'
+      ],
+      incentiveSystem: 'Unable to determine incentive system from this input.',
       speakerComparison: null
     }
   }
