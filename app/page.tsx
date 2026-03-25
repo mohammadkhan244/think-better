@@ -698,16 +698,18 @@ export default function Home() {
                 <section>
                   {(single.resources?.books?.length ?? 0) > 0 ? (
                     <>
-                      <h2 style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c8a84b', marginBottom: '6px', marginTop: 0, fontWeight: 600 }}>
+                      <h2 style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c8a84b', marginBottom: '16px', marginTop: 0, fontWeight: 600 }}>
                         Go Deeper
                       </h2>
-                      <p style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', marginBottom: '20px', fontStyle: 'italic', marginTop: 0 }}>
-                        Three books worth reading based on the reasoning patterns detected and the topic being argued.
-                      </p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         {single.resources!.books.map((book: BookEntry, i: number) => (
                           <div key={i} style={{ padding: '14px 16px', border: '1px solid #2e2e2e', background: '#141414' }}>
-                            <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#666660', marginBottom: '4px' }}>{book.category}</div>
+                            <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#666660', marginBottom: '4px' }}>
+                              {book.category}
+                              <span style={{ textTransform: 'none', letterSpacing: 'normal', fontStyle: 'italic', marginLeft: '6px', opacity: 0.7 }}>
+                                — {({ Eyewitness: 'Closest to the problem', Explainer: 'Connects this to something larger', Expert: 'Deep in the field' } as Record<string, string>)[book.category] || book.category}
+                              </span>
+                            </div>
                             <div style={{ fontFamily: 'monospace', fontSize: '0.95rem', fontWeight: 600, marginBottom: '2px', color: '#e8e8e0' }}>{book.title}</div>
                             <div style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', marginBottom: '8px' }}>{book.author}</div>
                             <div style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.5' }}>{book.why}</div>
