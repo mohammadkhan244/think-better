@@ -27,6 +27,13 @@ interface BookEntry {
   why: string
 }
 
+interface BeliefSystem {
+  coreAssumptions: string[]
+  loadBearingBeliefs: string[]
+  incentiveSystem: string[]
+  speakerComparison?: string
+}
+
 interface SingleResult {
   mode: 'single'
   floater: { scores: Record<string, { score: number; justification: string }>; overall: number }
@@ -36,6 +43,7 @@ interface SingleResult {
   agency?: Agency
   domain?: { domain: Domain; confidence: string }
   resources?: { curated: BookEntry[]; topical: BookEntry | null }
+  beliefSystem?: BeliefSystem
   summary: string
   fromCache: boolean
 }
@@ -310,15 +318,18 @@ export default function Home() {
 
   const hasResults = !!(single || multi) && !isLoading
 
+  // Helper: show a section on mobile only if its tab is active; on desktop always show
+  const tabClass = (tabId: TabId) =>
+    activeTab === tabId ? 'md:block' : 'hidden md:block'
+
   return (
     <main className="min-h-screen bg-[#0e0e0e] text-[#e8e8e0]">
 
-      {/* ── Outer layout: single column mobile, two-column desktop ── */}
-      <div className="flex flex-col md:flex-row md:items-start md:max-w-[1100px] md:mx-auto md:px-6 md:pt-6">
+      {/* ── Single column, max 800px on desktop ── */}
+      <div className="md:max-w-[800px] md:mx-auto md:px-6">
 
-        {/* ── LEFT COLUMN: header + input + score card + desktop tabs ── */}
-        <div className="px-6 pt-16 pb-6 md:p-0 md:pt-6 md:pb-6 md:w-[380px] md:flex-shrink-0 md:sticky md:top-6 md:max-h-[calc(100vh-48px)] md:overflow-y-auto">
-
+        {/* ── Header + Input ── */}
+        <div className="px-6 pt-16 pb-6 md:pt-16 md:pb-6 md:px-0">
           <header className="mb-8">
             <h1 className="font-serif text-4xl text-[#e8e8e0] tracking-tight mb-2">
               The Reasoning Machine
@@ -347,7 +358,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* ── Score card ── */}
+          {/* ── Score card: sticky on mobile, in-flow on desktop ── */}
           {single && !isLoading && (
             <div
               className="sticky top-0 z-10 md:static md:z-auto bg-[#0e0e0e] md:bg-transparent"
@@ -383,47 +394,10 @@ export default function Home() {
               </div>
             </div>
           )}
-
-          {/* ── Desktop vertical tab list ── */}
-          {single && !isLoading && (
-            <nav className="hidden md:flex flex-col mt-4" style={{ gap: '2px' }}>
-              {TABS.map(tab => {
-                const isActive = activeTab === tab.id
-                const label =
-                  tab.id === 'breakdown' && patternCount > 0 ? `${tab.label} (${patternCount})`
-                  : tab.id === 'questions' && totalQuestions > 0 ? `${tab.label} (${totalQuestions})`
-                  : tab.label
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '10px 14px',
-                      borderRadius: '6px',
-                      fontSize: '0.875rem',
-                      fontFamily: 'monospace',
-                      color: isActive ? '#c8a84b' : '#666660',
-                      background: isActive ? 'rgba(200, 168, 75, 0.1)' : 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      width: '100%',
-                      textAlign: 'left',
-                    }}
-                  >
-                    <span style={{ fontSize: '1rem' }}>{tab.emoji}</span>
-                    <span>{label}</span>
-                  </button>
-                )
-              })}
-            </nav>
-          )}
         </div>
 
-        {/* ── RIGHT COLUMN: tab content ── */}
-        <div className="flex-1 px-6 pb-[72px] md:pl-10 md:pr-0 md:px-0 md:pb-12 md:pt-6">
+        {/* ── Content area ── */}
+        <div className="px-6 pb-[72px] md:px-0 md:pb-16">
 
           {isLoading && (
             <div className="py-16">
@@ -446,187 +420,244 @@ export default function Home() {
             </div>
           )}
 
-          {/* Single-speaker tab content */}
+          {/* ── Single-speaker results ── */}
           {single && !isLoading && (
             <div className="animate-fadeIn">
 
-              {/* ── Tab: Overview ── */}
-              {activeTab === 'overview' && (
-                <div>
-                  {/* Domain banner */}
-                  {single.domain?.domain &&
-                   single.domain.domain !== 'general' &&
-                   single.domain.domain !== 'empirical' &&
-                   domainConfig[single.domain.domain] && (
-                    <div style={{
-                      borderLeft: '3px solid #c8a84b',
-                      padding: '14px 16px',
-                      marginBottom: '24px',
-                      background: 'rgba(200, 168, 75, 0.06)'
-                    }}>
-                      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c8a84b', marginBottom: '6px', fontWeight: 600 }}>
-                        {domainConfig[single.domain.domain]!.label}
-                      </div>
-                      <p style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#666660', lineHeight: '1.6', margin: 0 }}>
-                        {domainConfig[single.domain.domain]!.explanation}
-                      </p>
-                    </div>
-                  )}
+              {/*
+                Desktop order (all sections always visible):
+                  1. Domain banner + What This Means  (overview-top)
+                  2. FLOATER + Patterns               (breakdown)
+                  3. Beliefs                          (beliefs)
+                  4. Agency + Summary                 (overview-bottom)
+                  5. Questions                        (questions)
+                  6. Go Deeper                        (deeper)
 
-                  {/* What This Means */}
-                  <div className="border border-[#2e2e2e] p-4 mb-6">
-                    <p className="text-xs font-mono text-[#444440] tracking-widest uppercase mb-2">What This Means</p>
-                    <p className="text-xs font-mono text-[#666660] leading-relaxed">
-                      {getWhatThisMeans(single.floater.overall, single.biasesAndFallacies.length)}
+                Mobile: only the active tab's section(s) are visible.
+                The `tabClass` helper applies `hidden md:block` for inactive tabs,
+                so hidden on mobile but always shown on desktop.
+              */}
+
+              {/* ── 1. Domain banner + What This Means (overview-top) ── */}
+              <div className={tabClass('overview')}>
+                {single.domain?.domain &&
+                 single.domain.domain !== 'general' &&
+                 single.domain.domain !== 'empirical' &&
+                 domainConfig[single.domain.domain] && (
+                  <div style={{
+                    borderLeft: '3px solid #c8a84b',
+                    padding: '14px 16px',
+                    marginBottom: '24px',
+                    background: 'rgba(200, 168, 75, 0.06)'
+                  }}>
+                    <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c8a84b', marginBottom: '6px', fontWeight: 600 }}>
+                      {domainConfig[single.domain.domain]!.label}
+                    </div>
+                    <p style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#666660', lineHeight: '1.6', margin: 0 }}>
+                      {domainConfig[single.domain.domain]!.explanation}
                     </p>
                   </div>
-
-                  {/* Agency block */}
-                  {single.agency && single.agency.bullets.length > 0 && (
-                    <div style={{
-                      borderLeft: '3px solid #c8a84b', padding: '16px',
-                      marginBottom: '24px',
-                      background: 'rgba(200, 168, 75, 0.06)'
-                    }}>
-                      <h3 style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px', marginTop: 0, color: '#c8a84b' }}>
-                        What This Argument Is Resting On
-                      </h3>
-                      <p style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: '#666660', fontStyle: 'italic', marginBottom: '12px', marginTop: 0, lineHeight: '1.6' }}>
-                        {single.agency.framing}
-                      </p>
-                      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {single.agency.bullets.map((bullet, i) => (
-                          <li key={i} style={{ paddingLeft: '20px', position: 'relative', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: '1.6', color: '#e8e8e0' }}>
-                            <span style={{ position: 'absolute', left: 0, color: '#c8a84b' }}>→</span>
-                            {bullet}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Summary */}
-                  {single.summary && (
-                    <div>
-                      <p className="text-xs font-mono text-[#444440] tracking-widest uppercase mb-3">Summary</p>
-                      <p className="text-sm font-mono text-[#666660] leading-relaxed">{single.summary}</p>
-                    </div>
-                  )}
+                )}
+                <div className="border border-[#2e2e2e] p-4 mb-6">
+                  <p className="text-xs font-mono text-[#444440] tracking-widest uppercase mb-2">What This Means</p>
+                  <p className="text-xs font-mono text-[#666660] leading-relaxed">
+                    {getWhatThisMeans(single.floater.overall, single.biasesAndFallacies.length)}
+                  </p>
                 </div>
-              )}
+              </div>
 
-              {/* ── Tab: Breakdown ── */}
-              {activeTab === 'breakdown' && (
-                <div>
-                  {/* FLOATER radar + dimensions */}
-                  <section className="mb-6">
-                    <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-4">FLOATER Scorecard</h2>
-                    <FloaterChart scores={single.floater.scores} />
-                    <div className="mt-4">
-                      {Object.entries(floaterBlurbs).map(([key, dim]) => {
-                        const scoreData = single.floater.scores[key]
-                        if (!scoreData) return null
-                        const signalLabel = getSignalLabel(scoreData.score)
-                        const isOpen = expanded[key]
-                        return (
-                          <div key={key} style={{ borderBottom: '1px solid #2e2e2e', padding: '12px 0' }}>
-                            <div
-                              onClick={() => toggleExpanded(key)}
-                              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#c8a84b', fontSize: '0.9rem' }}>{key}</span>
-                                <span style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#e8e8e0' }}>{dim.name}</span>
-                                <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#666660', fontStyle: 'italic' }}>— {signalLabel}</span>
-                              </div>
-                              <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: '#c8a84b', whiteSpace: 'nowrap', marginLeft: '12px' }}>
-                                {isOpen ? 'hide ↑' : 'what does this mean? ↓'}
-                              </span>
-                            </div>
-                            {isOpen && (
-                              <div style={{ marginTop: '10px', borderLeft: '2px solid #2e2e2e', paddingLeft: '12px' }}>
-                                <div style={{ borderLeft: '3px solid #c8a84b', paddingLeft: '10px', marginBottom: '12px' }}>
-                                  <p style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#c8a84b', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 4px 0' }}>Why this score</p>
-                                  <p style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.6', margin: 0 }}>
-                                    {scoreData.justification}
-                                  </p>
-                                </div>
-                                {(() => {
-                                  const quotes = single.biasesAndFallacies.filter(p => p.floaterDimension === key && p.matchedText).slice(0, 2)
-                                  return quotes.length > 0 ? (
-                                    <div style={{ marginBottom: '12px' }}>
-                                      {quotes.map((p, i) => (
-                                        <div key={i} style={{ borderLeft: '3px solid #3a3a2e', paddingLeft: '10px', marginBottom: i < quotes.length - 1 ? '8px' : 0 }}>
-                                          <p style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#a8a89a', fontStyle: 'italic', lineHeight: '1.5', margin: '0 0 2px 0' }}>
-                                            &ldquo;{p.matchedText}&rdquo;
-                                          </p>
-                                          <p style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#666660', margin: 0 }}>{p.name}</p>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  ) : null
-                                })()}
-                                <p style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#666660', lineHeight: '1.6', marginBottom: '8px', marginTop: 0 }}>
-                                  {dim.what}
-                                </p>
-                                <p style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.6', margin: 0 }}>
-                                  {dim.signalLabels[signalLabel]}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </section>
-
-                  {/* Reasoning patterns */}
-                  <section>
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase">
-                        Reasoning Patterns Detected ({single.biasesAndFallacies.length})
-                      </h2>
-                      <div className="flex gap-1">
-                        {(['all', 'fallacies', 'biases'] as FilterType[]).map(f => (
-                          <button
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            className={`text-xs font-mono px-3 py-1 border transition-colors ${
-                              filter === f ? 'border-[#c8a84b] text-[#c8a84b]' : 'border-[#2e2e2e] text-[#444440] hover:border-[#444440]'
-                            }`}
+              {/* ── 2. FLOATER radar + Reasoning Patterns (breakdown) ── */}
+              <div className={tabClass('breakdown')}>
+                <section className="mb-6">
+                  <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-4">FLOATER Scorecard</h2>
+                  <FloaterChart scores={single.floater.scores} />
+                  <div className="mt-4">
+                    {Object.entries(floaterBlurbs).map(([key, dim]) => {
+                      const scoreData = single.floater.scores[key]
+                      if (!scoreData) return null
+                      const signalLabel = getSignalLabel(scoreData.score)
+                      const isOpen = expanded[key]
+                      return (
+                        <div key={key} style={{ borderBottom: '1px solid #2e2e2e', padding: '12px 0' }}>
+                          <div
+                            onClick={() => toggleExpanded(key)}
+                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
                           >
-                            {f.charAt(0).toUpperCase() + f.slice(1)}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    {filteredIssues.length > 0 ? (
-                      <div className="space-y-2">
-                        {filteredIssues.map((issue, i) => <BiasCard key={i} {...issue} />)}
-                      </div>
-                    ) : (
-                      <p className="text-xs font-mono text-[#444440]">No common bias or fallacy patterns detected.</p>
-                    )}
-                  </section>
-                </div>
-              )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                              <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#c8a84b', fontSize: '0.9rem' }}>{key}</span>
+                              <span style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#e8e8e0' }}>{dim.name}</span>
+                              <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#666660', fontStyle: 'italic' }}>— {signalLabel}</span>
+                            </div>
+                            <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: '#c8a84b', whiteSpace: 'nowrap', marginLeft: '12px' }}>
+                              {isOpen ? 'hide ↑' : 'what does this mean? ↓'}
+                            </span>
+                          </div>
+                          {isOpen && (
+                            <div style={{ marginTop: '10px', borderLeft: '2px solid #2e2e2e', paddingLeft: '12px' }}>
+                              <div style={{ borderLeft: '3px solid #c8a84b', paddingLeft: '10px', marginBottom: '12px' }}>
+                                <p style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#c8a84b', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 4px 0' }}>Why this score</p>
+                                <p style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.6', margin: 0 }}>
+                                  {scoreData.justification}
+                                </p>
+                              </div>
+                              {(() => {
+                                const quotes = single.biasesAndFallacies.filter(p => p.floaterDimension === key && p.matchedText).slice(0, 2)
+                                return quotes.length > 0 ? (
+                                  <div style={{ marginBottom: '12px' }}>
+                                    {quotes.map((p, i) => (
+                                      <div key={i} style={{ borderLeft: '3px solid #3a3a2e', paddingLeft: '10px', marginBottom: i < quotes.length - 1 ? '8px' : 0 }}>
+                                        <p style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#a8a89a', fontStyle: 'italic', lineHeight: '1.5', margin: '0 0 2px 0' }}>
+                                          &ldquo;{p.matchedText}&rdquo;
+                                        </p>
+                                        <p style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#666660', margin: 0 }}>{p.name}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null
+                              })()}
+                              <p style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#666660', lineHeight: '1.6', marginBottom: '8px', marginTop: 0 }}>
+                                {dim.what}
+                              </p>
+                              <p style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.6', margin: 0 }}>
+                                {dim.signalLabels[signalLabel]}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
 
-              {/* ── Tab: Beliefs ── */}
-              {activeTab === 'beliefs' && (
-                <div>
+                <section className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase">
+                      Reasoning Patterns Detected ({single.biasesAndFallacies.length})
+                    </h2>
+                    <div className="flex gap-1">
+                      {(['all', 'fallacies', 'biases'] as FilterType[]).map(f => (
+                        <button
+                          key={f}
+                          onClick={() => setFilter(f)}
+                          className={`text-xs font-mono px-3 py-1 border transition-colors ${
+                            filter === f ? 'border-[#c8a84b] text-[#c8a84b]' : 'border-[#2e2e2e] text-[#444440] hover:border-[#444440]'
+                          }`}
+                        >
+                          {f.charAt(0).toUpperCase() + f.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {filteredIssues.length > 0 ? (
+                    <div className="space-y-2">
+                      {filteredIssues.map((issue, i) => <BiasCard key={i} {...issue} />)}
+                    </div>
+                  ) : (
+                    <p className="text-xs font-mono text-[#444440]">No common bias or fallacy patterns detected.</p>
+                  )}
+                </section>
+              </div>
+
+              {/* ── 3. Operating Belief System (beliefs) ── */}
+              <div className={tabClass('beliefs')}>
+                <section className="mb-6">
                   <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-3">
                     Operating Belief System
                   </h2>
                   <p style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: '#666660', fontStyle: 'italic', lineHeight: '1.6', marginBottom: '24px', marginTop: 0 }}>
                     What this argument assumes to be true — never stated, but load-bearing.
                   </p>
-                  <p className="text-xs font-mono text-[#444440]">Belief system analysis will appear here.</p>
-                </div>
-              )}
+                  {single.beliefSystem && single.beliefSystem.coreAssumptions.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                      {single.beliefSystem.coreAssumptions.length > 0 && (
+                        <div>
+                          <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c8a84b', marginBottom: '12px', marginTop: 0 }}>Core Assumptions</p>
+                          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {single.beliefSystem.coreAssumptions.map((a, i) => (
+                              <li key={i} style={{ paddingLeft: '20px', position: 'relative', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: '1.6', color: '#e8e8e0' }}>
+                                <span style={{ position: 'absolute', left: 0, color: '#c8a84b' }}>→</span>
+                                {a}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {single.beliefSystem.loadBearingBeliefs.length > 0 && (
+                        <div>
+                          <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c8a84b', marginBottom: '12px', marginTop: 0 }}>Load-Bearing Beliefs</p>
+                          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {single.beliefSystem.loadBearingBeliefs.map((b, i) => (
+                              <li key={i} style={{ paddingLeft: '20px', position: 'relative', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: '1.6', color: '#e8e8e0' }}>
+                                <span style={{ position: 'absolute', left: 0, color: '#c8a84b' }}>→</span>
+                                {b}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {single.beliefSystem.incentiveSystem.length > 0 && (
+                        <div>
+                          <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c8a84b', marginBottom: '12px', marginTop: 0 }}>Incentive System</p>
+                          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {single.beliefSystem.incentiveSystem.map((s, i) => (
+                              <li key={i} style={{ paddingLeft: '20px', position: 'relative', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: '1.6', color: '#e8e8e0' }}>
+                                <span style={{ position: 'absolute', left: 0, color: '#c8a84b' }}>→</span>
+                                {s}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {single.beliefSystem.speakerComparison && (
+                        <div style={{ borderLeft: '2px solid #2e2e2e', paddingLeft: '12px' }}>
+                          <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c8a84b', marginBottom: '8px', marginTop: 0 }}>Speaker Comparison</p>
+                          <p style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: '#666660', lineHeight: '1.6', margin: 0 }}>
+                            {single.beliefSystem.speakerComparison}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs font-mono text-[#444440]">Belief system analysis will appear here.</p>
+                  )}
+                </section>
+              </div>
 
-              {/* ── Tab: Questions ── */}
-              {activeTab === 'questions' && (
-                <div>
+              {/* ── 4. Agency + Summary (overview-bottom) ── */}
+              <div className={tabClass('overview')}>
+                {single.agency && single.agency.bullets.length > 0 && (
+                  <div style={{
+                    borderLeft: '3px solid #c8a84b', padding: '16px',
+                    marginBottom: '24px',
+                    background: 'rgba(200, 168, 75, 0.06)'
+                  }}>
+                    <h3 style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px', marginTop: 0, color: '#c8a84b' }}>
+                      What This Argument Is Resting On
+                    </h3>
+                    <p style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: '#666660', fontStyle: 'italic', marginBottom: '12px', marginTop: 0, lineHeight: '1.6' }}>
+                      {single.agency.framing}
+                    </p>
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {single.agency.bullets.map((bullet, i) => (
+                        <li key={i} style={{ paddingLeft: '20px', position: 'relative', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: '1.6', color: '#e8e8e0' }}>
+                          <span style={{ position: 'absolute', left: 0, color: '#c8a84b' }}>→</span>
+                          {bullet}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {single.summary && (
+                  <div className="mb-6">
+                    <p className="text-xs font-mono text-[#444440] tracking-widest uppercase mb-3">Summary</p>
+                    <p className="text-sm font-mono text-[#666660] leading-relaxed">{single.summary}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* ── 5. Questions ── */}
+              <div className={tabClass('questions')}>
+                <section className="mb-6">
                   <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-6">
                     Questions That Pressure-Test This Argument
                   </h2>
@@ -649,12 +680,12 @@ export default function Home() {
                     startIndex={7}
                     isLast
                   />
-                </div>
-              )}
+                </section>
+              </div>
 
-              {/* ── Tab: Deeper ── */}
-              {activeTab === 'deeper' && (
-                <div>
+              {/* ── 6. Go Deeper ── */}
+              <div className={tabClass('deeper')}>
+                <section>
                   {((single.resources?.curated?.length ?? 0) > 0 || single.resources?.topical) ? (
                     <>
                       <h2 style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c8a84b', marginBottom: '6px', marginTop: 0, fontWeight: 600 }}>
@@ -666,34 +697,18 @@ export default function Home() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         {single.resources!.curated.map((book, i) => (
                           <div key={i} style={{ padding: '14px 16px', border: '1px solid #2e2e2e', background: '#141414' }}>
-                            <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#666660', marginBottom: '4px' }}>
-                              On the reasoning
-                            </div>
-                            <div style={{ fontFamily: 'monospace', fontSize: '0.95rem', fontWeight: 600, marginBottom: '2px', color: '#e8e8e0' }}>
-                              {book.title}
-                            </div>
-                            <div style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', marginBottom: '8px' }}>
-                              {book.author}
-                            </div>
-                            <div style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.5' }}>
-                              {book.why}
-                            </div>
+                            <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#666660', marginBottom: '4px' }}>On the reasoning</div>
+                            <div style={{ fontFamily: 'monospace', fontSize: '0.95rem', fontWeight: 600, marginBottom: '2px', color: '#e8e8e0' }}>{book.title}</div>
+                            <div style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', marginBottom: '8px' }}>{book.author}</div>
+                            <div style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.5' }}>{book.why}</div>
                           </div>
                         ))}
                         {single.resources!.topical && (
                           <div style={{ padding: '14px 16px', border: '1px solid #2e2e2e', background: '#141414' }}>
-                            <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#666660', marginBottom: '4px' }}>
-                              On the topic
-                            </div>
-                            <div style={{ fontFamily: 'monospace', fontSize: '0.95rem', fontWeight: 600, marginBottom: '2px', color: '#e8e8e0' }}>
-                              {single.resources!.topical.title}
-                            </div>
-                            <div style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', marginBottom: '8px' }}>
-                              {single.resources!.topical.author}
-                            </div>
-                            <div style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.5' }}>
-                              {single.resources!.topical.why}
-                            </div>
+                            <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#666660', marginBottom: '4px' }}>On the topic</div>
+                            <div style={{ fontFamily: 'monospace', fontSize: '0.95rem', fontWeight: 600, marginBottom: '2px', color: '#e8e8e0' }}>{single.resources!.topical.title}</div>
+                            <div style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', marginBottom: '8px' }}>{single.resources!.topical.author}</div>
+                            <div style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.5' }}>{single.resources!.topical.why}</div>
                           </div>
                         )}
                       </div>
@@ -701,15 +716,15 @@ export default function Home() {
                   ) : (
                     <p className="font-mono text-xs text-[#444440]">Book recommendations will appear here.</p>
                   )}
-                </div>
-              )}
+                </section>
+              </div>
 
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Mobile tab bar — fixed at bottom ── */}
+      {/* ── Mobile tab bar — fixed at bottom, hidden on desktop ── */}
       {hasResults && single && (
         <nav
           className="md:hidden fixed bottom-0 left-0 right-0 flex z-[100] bg-[#141414] border-t border-[#2e2e2e]"
