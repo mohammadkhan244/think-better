@@ -16,19 +16,19 @@ function countWords(text: string): number {
 const EXAMPLE_CHIPS = [
   {
     label: 'A health claim I\'m skeptical of',
-    text: "Sugar is just sugar. Your body can't tell the difference between the fructose in a grape and the sugar in a Hershey's Kiss, so there's no reason to avoid candy if you're already eating fruit. The science on this is settled — calories in, calories out is all that matters. Anyone who says otherwise is selling you something.",
+    text: "Dr. Lustig's research on fructose is funded by people who want to sell you alternative sweeteners, so you can ignore it. Sugar is sugar — your body processes fructose the same way regardless of source. The French eat pastries every morning and have lower obesity rates than Americans, which proves diet culture is just an industry built on making you feel bad about food. Eat what you want in moderation. Anyone telling you otherwise has something to sell.",
   },
   {
     label: 'Something my boss said',
-    text: "We need to move fast on this. The market window is closing and if we don't ship in the next two weeks we'll lose our advantage. I know the QA isn't done but honestly our competitors aren't perfect either. We can fix bugs after launch — that's what updates are for. The team that ships first wins.",
+    text: "We've spent 18 months and $2M building this. Pivoting now would mean throwing all of that away. Our competitors are already in the market and every week we delay, we lose ground we can't recover. I know the data isn't where we want it but honestly no product launches with perfect data. The companies that win are the ones that commit. We either go all-in on this by Q3 or we accept that we're ceding the market. There's no middle path here.",
   },
   {
     label: 'A news headline or op-ed',
-    text: "Remote work is destroying innovation and corporate culture. Every major breakthrough in tech happened in an office. Companies that went fully remote are already seeing the consequences — declining output, disengaged employees, and a generation of workers who don't know how to collaborate. The data is clear: in-person teams outperform remote ones.",
+    text: "Every great founder I've studied shares the same pattern: they ignored what the market said it wanted and built what they knew it needed. Jobs didn't do focus groups. Musk didn't wait for permission. The lesson is clear — visionary founders succeed by trusting their own judgment over customer feedback. If you're constantly listening to users, you're optimizing for the present and you'll miss the future. The best product decisions come from conviction, not consensus.",
   },
   {
     label: 'A position I\'m about to defend',
-    text: "AI will eliminate more jobs than it creates. Every major technological shift in history has displaced workers, and this one moves faster than any before it. The jobs it creates require skills most displaced workers don't have and can't realistically acquire. Net job loss is inevitable.",
+    text: "Remote work is an experiment that failed. Humans evolved to collaborate in physical proximity — that's how trust forms, how ideas spread, how culture gets built. Every civilization that lost cohesion declined, and distributed teams are the corporate version of that same pattern. The companies quietly calling people back aren't being regressive — they're being honest about what the data is showing. You can either build a real culture or you can optimize for employee comfort. You can't do both.",
   },
 ]
 
