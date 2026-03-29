@@ -18,7 +18,7 @@ interface Agency {
 interface Questions {
   defend: string[]
   challenge: string[]
-  audit: string[]
+  missing: string[]
 }
 
 interface BookEntry {
@@ -684,9 +684,9 @@ export default function Home() {
                     startIndex={4}
                   />
                   <QuestionGroup
-                    title="If you're auditing your own thinking"
-                    subhead="Honest questions worth sitting with — not rhetorical."
-                    questions={single.followUpQuestions.audit}
+                    title="What this argument never addressed"
+                    subhead="Not what's wrong with the argument — what's outside its frame entirely."
+                    questions={single.followUpQuestions.missing}
                     startIndex={7}
                     isLast
                   />

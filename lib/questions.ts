@@ -9,7 +9,7 @@ export async function generateQuestions(
 ): Promise<{
   defend: string[]
   challenge: string[]
-  audit: string[]
+  missing: string[]
 }> {
   const weakDimensions = Object.entries(floaterScores)
     .filter(([, v]) => v.score <= 5)
@@ -22,25 +22,26 @@ export async function generateQuestions(
 
   const prompt = `You are a critical thinking coach analyzing an argument from three perspectives.
 Generate exactly 3 questions for each of the three categories below.
-Each question must be specific to the actual topic and claims in the text.
-Do not use generic questions. Do not declare the claim true or false.
+Each question must be specific to the actual topic and claims in the text. Do not use generic questions. Do not declare the claim true or false.
 
 DEFEND QUESTIONS (3):
-These are adversarial questions a hostile critic or opponent would use to attack this argument.
-Frame them as direct challenges. Make them genuinely threatening to the argument's weak points.
-The person reading these needs to have answers ready before presenting this argument.
+These are adversarial questions a hostile critic or opponent would use to attack this argument. Frame them as direct challenges. Make them genuinely threatening to the argument's weak points. The person reading these needs to have answers ready before presenting this argument.
 Tone: pointed, specific, prosecutorial against the author's own position.
 
 CHALLENGE QUESTIONS (3):
 These are questions to put directly to whoever made this argument.
-Each question should target a specific structural weakness, hidden assumption, or unsupported leap.
-Sequenced by leverage — the most damaging question first.
+Each question should target a specific structural weakness, hidden assumption, or unsupported leap. Sequenced by leverage — the most damaging question first.
 Tone: interrogation tools, not conversation starters.
 
-AUDIT QUESTIONS (3):
-These are uncomfortable honest questions the author should ask themselves.
-Not rhetorical. Not attacking. Genuinely open — the kind that reveal what the argument is protecting.
-Tone: honest self-inquiry, the questions a trusted advisor would ask privately.
+MISSING QUESTIONS (3):
+These are not about what is wrong with the argument — they are about what the argument never thought to address. Surface the blind spots, absent perspectives, excluded variables, and unasked questions that sit entirely outside the argument's current frame.
+Do NOT ask "have you considered X" style questions.
+Instead ask questions that reveal what was never in the frame at all.
+Examples of the right register:
+- "This argument operates entirely within [assumption] — what would the analysis look like from outside that assumption?"
+- "The argument never addresses [absent party/variable] — is that exclusion deliberate or a blind spot?"
+- "What would someone who has lived through [relevant experience] see in this argument that the author cannot see from their current position?"
+Tone: genuinely curious, not accusatory — these questions expand the frame rather than attack the argument.
 
 TEXT:
 """
@@ -53,11 +54,11 @@ ${weakDimensions || 'None identified as weak.'}
 DETECTED ISSUES:
 ${issuesList || 'None detected.'}
 
-Return ONLY this exact JSON structure, nothing else:
+Return ONLY this exact JSON structure, nothing else. No markdown. No preamble:
 {
   "defend": ["question 1", "question 2", "question 3"],
   "challenge": ["question 1", "question 2", "question 3"],
-  "audit": ["question 1", "question 2", "question 3"]
+  "missing": ["question 1", "question 2", "question 3"]
 }`
 
   try {
@@ -74,13 +75,13 @@ Return ONLY this exact JSON structure, nothing else:
     return {
       defend: parsed.defend || [],
       challenge: parsed.challenge || [],
-      audit: parsed.audit || []
+      missing: parsed.missing || []
     }
   } catch {
     return {
       defend: ['What evidence would cause you to abandon this position?'],
       challenge: ['What specific data supports this claim?'],
-      audit: ['Why does this conclusion feel obvious to me?']
+      missing: ['What perspective is entirely absent from this argument?']
     }
   }
 }

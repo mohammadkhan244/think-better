@@ -23,7 +23,7 @@ function looksLikeConversation(text: string): boolean {
 const DEFAULT_QUESTIONS = {
   defend: ['What evidence would cause you to abandon this position?'],
   challenge: ['What specific data supports this claim?'],
-  audit: ['Why does this conclusion feel obvious to me?']
+  missing: ['What perspective is entirely absent from this argument?']
 }
 
 async function analyzeSingleText(text: string) {
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     }
 
     const noCache = req.nextUrl.searchParams.get('nocache') === '1'
-    const cacheKey = getCacheKey(trimmed + '::v2')
+    const cacheKey = getCacheKey(trimmed + '::v3')
     if (!noCache) {
       const cached = getFromCache(cacheKey)
       if (cached) return NextResponse.json({ ...cached, fromCache: true, cacheStatus: 'hit' })
