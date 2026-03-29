@@ -107,6 +107,9 @@ const DETECTORS: DetectorEntry[] = [
       /\baccept that .{3,60} (will|shall) (collapse|fail|decline|fall behind)\b/i,
       /\bfall behind .{2,40} (who are|that are|with)\b/i,
       /\bwill (fall|crumble|decay|unravel)\b/i,
+      /\bif (we|you) (wait|delay|slow down|take longer).{0,40}(lose|miss|fall behind|too late)\b/i,
+      /\b(every day|every week|each day|each week) (we|you) (wait|delay|don'?t ship)\b/i,
+      /\bcompetitors? (will|are going to|could) (take|steal|capture|own) (our |the )?(market|users?|customers?|lead)\b/i,
     ],
     contextValidators: [/\bthen\b/i, /\bleads? to\b/i, /\bwill\b/i, /\bwould\b/i, /.*/],
     floaterDimension: 'L'
@@ -123,6 +126,9 @@ const DETECTORS: DetectorEntry[] = [
       /\bmust choose between\b/i,
       /\bor (accept|face|embrace) (that|the fact)\b/i,
       /\byou can (either|only)\b/i,
+      /\bif (we|you) don'?t .{3,60}(we'?ll?|you'?ll?) (lose|fail|miss|fall behind)\b/i,
+      /\b(ship|launch|move|act) (now|fast|quickly) or (lose|miss|fall behind)\b/i,
+      /\bwindow is (closing|closing fast|almost gone|nearly closed)\b/i,
     ],
     contextValidators: [/.*/],
     floaterDimension: 'A'
@@ -197,6 +203,10 @@ const DETECTORS: DetectorEntry[] = [
       /\bif you (really |truly )?cared\b/i,
       /\bhow could (anyone|you)\b/i,
       /\bit('?s| is) (heartbreaking|devastating|terrifying|outrageous)\b/i,
+      /\b(honestly|frankly|look).{0,20}(we need to|we have to|we must|we can'?t wait)\b/i,
+      /\bI know .{3,60}but (honestly|the truth is|the reality is|look)\b/i,
+      /\b(the clock|time) is (ticking|running out|against us)\b/i,
+      /\bwe'?ll? (regret|miss) (this|it) if (we|you) (don'?t|wait|hesitate)\b/i,
     ],
     contextValidators: [/\bfeel\b/i, /\bscared\b/i, /\bfear\b/i, /\bhope\b/i, /\bterrible\b/i, /.*/],
     floaterDimension: 'O'
@@ -285,6 +295,9 @@ const DETECTORS: DetectorEntry[] = [
       /\b(conservative|liberal|red|blue) (cities|states|countries) .{3,60}(safer|more dangerous|lower crime|higher crime)\b/i,
       /\bcities with (strong|weak|more|less|better|fewer) .{3,40}(consistently|always|tend to)\b/i,
       /\bconsistently have (safer|more dangerous|lower|higher)\b/i,
+      /\b(look at|think about|remember) (how |what |when )?(company|startup|brand|product).{0,40}(shipped|launched|moved fast|won)\b/i,
+      /\bcompanies? (that |who |which )?(ship|move|act) (fast|first|quickly) (win|succeed|dominate)\b/i,
+      /\bour competitors? aren'?t (perfect|done|finished|ready) (either|also)\b/i,
     ],
     contextValidators: [/.*/],
     floaterDimension: 'A'
@@ -320,6 +333,10 @@ const DETECTORS: DetectorEntry[] = [
       /\ball the (startups?|companies|businesses|teams?) (failing|collapsing|struggling) (lately|recently|these days)\b/i,
       /\b(failing|struggling|collapsing) (lately|recently|these days|now)\b/i,
       /\bseem(s|ingly) (everywhere|constant|rampant|widespread) (now|lately|these days)\b/i,
+      /\bmarket window is (closing|shrinking|disappearing)\b/i,
+      /\b(two|2|three|3|four|4) weeks? (left|remaining|to act|or we lose)\b/i,
+      /\bif we don'?t (act|move|ship|launch) (now|immediately|fast)\b/i,
+      /\bwe'?ll? lose (our )?(advantage|edge|window|opportunity|lead)\b/i,
     ],
     contextValidators: [/.*/],
     floaterDimension: 'E'
@@ -447,6 +464,10 @@ const DETECTORS: DetectorEntry[] = [
       /\bI know (for a fact|without a doubt|with certainty)\b/i,
       /\bwithout (any |a )?(doubt|question)\b/i,
       /\bwill (definitely|certainly|absolutely|undoubtedly)\b/i,
+      /\bthe team that .{3,40} (wins?|succeeds?|dominates?)\b/i,
+      /\b(always|never) (wins?|works?|succeeds?|loses?)\b/i,
+      /\bwhoever .{3,40} (wins?|dominates?|owns?)\b/i,
+      /\bthat'?s? (just |simply )?(how|what) (it works|you win|you lose|wins)\b/i,
     ],
     contextValidators: [/.*/],
     floaterDimension: 'T'
@@ -703,6 +724,9 @@ const DETECTORS: DetectorEntry[] = [
       /\ball (we|they|you) (need to do|have to do|need) is\b/i,
       /\bsimply (enforce|implement|apply|follow|do) (the|this|that|our) (rules?|policy|plan|strategy|law)\b/i,
       /\bit'?s? (that |just |really |)(simple|easy|straightforward) — just\b/i,
+      /\bwe can (always|just|easily) (roll back|fix|patch|update|hotfix)\b/i,
+      /\b(updates?|patches?|fixes?) (are|is) (easy|simple|straightforward|quick)\b/i,
+      /\bno (big deal|problem|issue) (if|when) (something|it|bugs?) (breaks?|fails?|goes wrong)\b/i,
     ],
     contextValidators: [/.*/],
     floaterDimension: 'T'
@@ -716,6 +740,9 @@ const DETECTORS: DetectorEntry[] = [
       /\bno (reason|doubt|question) (this|it|that|the plan) (will|won'?t) (fail|work|succeed)\b/i,
       /\bguaranteed to (work|succeed|improve|solve|fix)\b/i,
       /\bcan'?t (fail|go wrong|miss|lose)\b/i,
+      /\bwe can (fix|patch|address|handle|deal with) (it|that|bugs?|issues?) (later|after|post[- ]launch|after launch)\b/i,
+      /\bthat'?s? what (updates?|patches?|v2|version 2|hotfixes?) are for\b/i,
+      /\b(fix|patch|improve) (it|that|bugs?) (after|post)[- ]?(launch|ship|release)\b/i,
     ],
     contextValidators: [/.*/],
     floaterDimension: 'T'
