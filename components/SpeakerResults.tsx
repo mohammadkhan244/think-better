@@ -77,15 +77,6 @@ function SpeakerPanel({ speaker }: { speaker: SpeakerAnalysis }) {
         </div>
       </div>
 
-      {/* Improvements */}
-      {speaker.improvements.length > 0 && (
-        <div>
-          <h3 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-1">How to Improve</h3>
-          <p className="text-xs font-mono text-[#444440] mb-3">Click any row to expand.</p>
-          <ImprovementPanel improvements={speaker.improvements} />
-        </div>
-      )}
-
       {/* Detected issues */}
       <div>
         <div className="flex items-center justify-between mb-4">

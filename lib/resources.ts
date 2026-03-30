@@ -48,6 +48,20 @@ field-defining — that gives rigorous depth on the specific
 subject matter of this argument.
 Category label: "Expert"
 
+CRITICAL INSTRUCTION: Do NOT recommend books that validate or reinforce the argument being analyzed. The user has already read in this direction.
+
+For each book ask: does this EXPAND the frame or CONFIRM it?
+Only recommend books that expand.
+
+Specifically:
+- Eyewitness: someone who experienced the CONSEQUENCES or OPPOSITE SIDE of this argument's position — not someone who exemplifies it. If the argument is about visionary founders ignoring feedback, the eyewitness is NOT a Jobs biography. It is someone who experienced what happens when founders ignore users — a customer, a failed founder, a product that harmed people.
+
+- Explainer: a book that connects this topic to a field or domain the argument completely ignores — not the adjacent field the argument already draws from.
+
+- Expert: the leading researcher whose findings most directly complicate or contradict the argument's central claim.
+
+If the most obvious book for a category would confirm the argument, that book is the wrong choice. Find the second or third most obvious book — it will usually be the one that expands the frame.
+
 STRICT RULES:
 - All 3 books must be about the TOPIC of the argument, not about
   reasoning quality or cognitive bias
