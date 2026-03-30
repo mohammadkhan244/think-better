@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic'
 import FloaterBreakdown from './FloaterBreakdown'
 import BiasCard from './BiasCard'
 import QuestionList from './QuestionList'
-import ImprovementPanel from './ImprovementPanel'
 import type { Improvement } from '@/lib/improvements'
 
 const FloaterChart = dynamic(() => import('./FloaterChart'), { ssr: false })
