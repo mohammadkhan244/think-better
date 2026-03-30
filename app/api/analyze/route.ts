@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     }
 
     const noCache = req.nextUrl.searchParams.get('nocache') === '1'
-    const cacheKey = getCacheKey(trimmed + '::v3')
+    const cacheKey = getCacheKey(trimmed + '::v4')
     if (!noCache) {
       const cached = getFromCache(cacheKey)
       if (cached) return NextResponse.json({ ...cached, fromCache: true, cacheStatus: 'hit' })

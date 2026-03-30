@@ -185,22 +185,20 @@ export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
               onInput={(e) => setTextValue((e.target as HTMLTextAreaElement).value)}
               maxLength={48000}
             />
-            {!textValue && (
-              <div className="mt-3">
-                <p className="text-xs font-mono text-[#444440] mb-2">Not sure what to paste? Try one of these:</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {EXAMPLE_CHIPS.map((chip) => (
-                    <button
-                      key={chip.label}
-                      onClick={() => setTextValue(chip.text)}
-                      className="text-left text-xs font-mono text-[#666660] border border-[#2e2e2e] px-2.5 py-1.5 hover:border-[#c8a84b] hover:text-[#c8a84b] transition-colors leading-relaxed"
-                    >
-                      {chip.label}
-                    </button>
-                  ))}
-                </div>
+            <div className="mt-3">
+              <p className="text-xs font-mono text-[#444440] mb-2">Not sure what to paste? Try one of these:</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {EXAMPLE_CHIPS.map((chip) => (
+                  <button
+                    key={chip.label}
+                    onClick={() => setTextValue(chip.text)}
+                    className="text-left text-xs font-mono text-[#666660] border border-[#2e2e2e] px-2.5 py-1.5 hover:border-[#c8a84b] hover:text-[#c8a84b] transition-colors leading-relaxed"
+                  >
+                    {chip.label}
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         )}
 
