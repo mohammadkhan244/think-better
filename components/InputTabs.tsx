@@ -58,7 +58,7 @@ export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
     : countWords(articleText)
 
   const canAnalyze =
-    currentWordCount >= 50 && !isLoading && !pdfLoading && !youtubeLoading && !articleLoading
+    currentWordCount >= 5 && !isLoading && !pdfLoading && !youtubeLoading && !articleLoading
 
   const getCurrentText = () => {
     if (activeTab === 'text') return textValue
@@ -338,9 +338,6 @@ export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#2e2e2e]">
           <span className="text-xs font-mono text-[#444440]">
             {currentWordCount} word{currentWordCount !== 1 ? 's' : ''}
-            {currentWordCount < 50 && currentWordCount > 0 && (
-              <span className="text-[#c0392b] ml-1">— need {50 - currentWordCount} more</span>
-            )}
           </span>
           <button
             onClick={() => onAnalyze(getCurrentText(), activeTab)}

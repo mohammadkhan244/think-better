@@ -66,9 +66,9 @@ export async function POST(req: NextRequest) {
     const trimmed = text.trim()
     const wordCount = trimmed.split(/\s+/).length
 
-    if (wordCount < 50) {
+    if (wordCount < 5) {
       return NextResponse.json(
-        { error: 'Please provide at least 50 words for meaningful analysis.' },
+        { error: 'Please provide at least a few words to analyze.' },
         { status: 400 }
       )
     }
