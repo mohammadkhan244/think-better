@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import InputTabs from '@/components/InputTabs'
 import BiasCard from '@/components/BiasCard'
@@ -273,6 +273,17 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>('questions')
   const [originalText, setOriginalText] = useState('')
 
+  // Progress state
+  const [progress, setProgress] = useState(0)
+  const [progressLabel, setProgressLabel] = useState('')
+  const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (progressInterval) clearInterval(progressInterval)
+    }
+  }, [progressInterval])
+
   // Training state
   const [trainingPattern, setTrainingPattern] = useState<string | null>(null)
   const [trainingScenario, setTrainingScenario] = useState<TrainingScenario | null>(null)
@@ -285,6 +296,54 @@ export default function Home() {
   const toggleExpanded = (key: string) =>
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
 
+  const startProgress = () => {
+    setProgress(0)
+    setProgressLabel('Reading the argument...')
+
+    const stages = [
+      { target: 12, label: 'Reading the argument...', duration: 1500 },
+      { target: 25, label: 'Running FLOATER analysis...', duration: 3000 },
+      { target: 40, label: 'Scanning for reasoning patterns...', duration: 4000 },
+      { target: 55, label: 'Mapping the belief system...', duration: 5000 },
+      { target: 68, label: 'Identifying incentive structures...', duration: 4000 },
+      { target: 78, label: 'Generating questions...', duration: 4000 },
+      { target: 87, label: 'Finding books...', duration: 3000 },
+      { target: 94, label: 'Almost done...', duration: 3000 },
+      { target: 98, label: 'Finishing up...', duration: 5000 },
+    ]
+
+    let currentStage = 0
+    let currentProgress = 0
+
+    const interval = setInterval(() => {
+      if (currentStage >= stages.length) return
+
+      const stage = stages[currentStage]
+
+      if (currentProgress < stage.target) {
+        const increment = (stage.target - currentProgress) / (stage.duration / 100)
+        currentProgress = Math.min(currentProgress + increment, stage.target)
+        setProgress(Math.round(currentProgress))
+        setProgressLabel(stage.label)
+      } else {
+        currentStage++
+      }
+    }, 100)
+
+    setProgressInterval(interval)
+    return interval
+  }
+
+  const completeProgress = (interval: NodeJS.Timeout) => {
+    clearInterval(interval)
+    setProgress(100)
+    setProgressLabel('Done.')
+    setTimeout(() => {
+      setProgress(0)
+      setProgressLabel('')
+    }, 600)
+  }
+
   const handleAnalyze = async (text: string, sourceType: string) => {
     setIsLoading(true)
     setError('')
@@ -296,6 +355,7 @@ export default function Home() {
     setTrainingScenario(null)
     setBeliefTraining(null)
     setIncentiveTraining(null)
+    const interval = startProgress()
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
@@ -303,9 +363,13 @@ export default function Home() {
         body: JSON.stringify({ text, sourceType }),
       })
       const data = await res.json()
+      completeProgress(interval)
       if (data.error) setError(data.error)
       else setResult(data)
     } catch {
+      clearInterval(interval)
+      setProgress(0)
+      setProgressLabel('')
       setError('Analysis failed. Please try again.')
     } finally {
       setIsLoading(false)
@@ -469,8 +533,45 @@ export default function Home() {
         <div className="px-6 pb-[72px] md:px-0 md:pb-16">
 
           {isLoading && (
-            <div className="py-16">
-              <p className="text-xs font-mono text-[#444440] tracking-widest">ANALYZING...</p>
+            <div style={{ marginTop: '24px', padding: '20px 0', width: '100%', boxSizing: 'border-box' }}>
+              <div style={{
+                width: '100%',
+                height: '3px',
+                background: '#2e2e2e',
+                borderRadius: '2px',
+                overflow: 'hidden',
+                marginBottom: '12px'
+              }}>
+                <div style={{
+                  height: '100%',
+                  width: `${progress}%`,
+                  background: '#c8a84b',
+                  borderRadius: '2px',
+                  transition: 'width 0.1s ease-out'
+                }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{
+                  fontSize: '0.75rem',
+                  color: '#666660',
+                  fontStyle: 'italic',
+                  fontFamily: 'monospace',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: 'calc(100% - 50px)'
+                }}>
+                  {progressLabel}
+                </span>
+                <span style={{
+                  fontSize: '0.75rem',
+                  color: '#c8a84b',
+                  fontFamily: 'monospace',
+                  fontWeight: 600
+                }}>
+                  {progress}%
+                </span>
+              </div>
             </div>
           )}
 
