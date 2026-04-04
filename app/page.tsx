@@ -5,6 +5,8 @@ import dynamic from 'next/dynamic'
 import InputTabs from '@/components/InputTabs'
 import BiasCard from '@/components/BiasCard'
 import SpeakerResults from '@/components/SpeakerResults'
+import TrainingCard from '@/components/TrainingCard'
+import type { TrainingScenario } from '@/components/TrainingCard'
 import type { Improvement } from '@/lib/improvements'
 import type { Domain } from '@/lib/domainDetector'
 
@@ -269,6 +271,16 @@ export default function Home() {
   const [filter, setFilter] = useState<FilterType>('all')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [activeTab, setActiveTab] = useState<TabId>('questions')
+  const [originalText, setOriginalText] = useState('')
+
+  // Training state
+  const [trainingPattern, setTrainingPattern] = useState<string | null>(null)
+  const [trainingScenario, setTrainingScenario] = useState<TrainingScenario | null>(null)
+  const [trainingLoading, setTrainingLoading] = useState(false)
+  const [beliefTraining, setBeliefTraining] = useState<TrainingScenario | null>(null)
+  const [beliefTrainingLoading, setBeliefTrainingLoading] = useState(false)
+  const [incentiveTraining, setIncentiveTraining] = useState<TrainingScenario | null>(null)
+  const [incentiveTrainingLoading, setIncentiveTrainingLoading] = useState(false)
 
   const toggleExpanded = (key: string) =>
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
@@ -279,6 +291,11 @@ export default function Home() {
     setResult(null)
     setExpanded({})
     setActiveTab('questions')
+    setOriginalText(text)
+    setTrainingPattern(null)
+    setTrainingScenario(null)
+    setBeliefTraining(null)
+    setIncentiveTraining(null)
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
@@ -293,6 +310,62 @@ export default function Home() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handlePatternTraining = async (patternName: string) => {
+    if (trainingPattern === patternName) {
+      setTrainingPattern(null)
+      setTrainingScenario(null)
+      return
+    }
+    setTrainingPattern(patternName)
+    setTrainingScenario(null)
+    setTrainingLoading(true)
+    const data = await fetch('/api/training/pattern', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patternName })
+    }).then(r => r.json())
+    setTrainingScenario(data.scenario)
+    setTrainingLoading(false)
+  }
+
+  const handleBeliefTraining = async () => {
+    if (beliefTraining) {
+      setBeliefTraining(null)
+      return
+    }
+    setBeliefTrainingLoading(true)
+    const res = await fetch('/api/training/belief', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: originalText,
+        coreAssumptions: (result as SingleResult)?.beliefSystem?.coreAssumptions ?? [],
+        domain: (result as SingleResult)?.domain?.domain ?? 'general'
+      })
+    }).then(r => r.json())
+    setBeliefTraining(res.scenario)
+    setBeliefTrainingLoading(false)
+  }
+
+  const handleIncentiveTraining = async () => {
+    if (incentiveTraining) {
+      setIncentiveTraining(null)
+      return
+    }
+    setIncentiveTrainingLoading(true)
+    const res = await fetch('/api/training/incentive', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: originalText,
+        incentiveSystem: (result as SingleResult)?.beliefSystem?.incentiveSystem ?? '',
+        domain: (result as SingleResult)?.domain?.domain ?? 'general'
+      })
+    }).then(r => r.json())
+    setIncentiveTraining(res.scenario)
+    setIncentiveTrainingLoading(false)
   }
 
   const single = result?.mode === 'single' ? result : null
@@ -546,7 +619,37 @@ export default function Home() {
                   </div>
                   {filteredIssues.length > 0 ? (
                     <div className="space-y-2">
-                      {filteredIssues.map((issue, i) => <BiasCard key={i} {...issue} />)}
+                      {filteredIssues.map((issue, i) => (
+                        <div key={i}>
+                          <BiasCard {...issue} />
+                          <button
+                            onClick={() => handlePatternTraining(issue.name)}
+                            style={{
+                              marginTop: '10px',
+                              padding: '6px 0',
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#c8a84b',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              fontFamily: 'monospace'
+                            }}
+                          >
+                            {trainingPattern === issue.name ? '↑ Close practice' : '👉 Practice spotting this →'}
+                          </button>
+                          {trainingPattern === issue.name && (
+                            trainingLoading
+                              ? <div style={{ fontSize: '0.8rem', color: '#666660', marginTop: '8px', fontFamily: 'monospace' }}>Loading scenario...</div>
+                              : trainingScenario
+                                ? <TrainingCard
+                                    scenario={trainingScenario}
+                                    onClose={() => { setTrainingPattern(null); setTrainingScenario(null) }}
+                                  />
+                                : null
+                          )}
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <p className="text-xs font-mono text-[#444440]">No common bias or fallacy patterns detected.</p>
@@ -577,6 +680,32 @@ export default function Home() {
                               </li>
                             ))}
                           </ul>
+                          <button
+                            onClick={handleBeliefTraining}
+                            style={{
+                              marginTop: '12px',
+                              padding: '6px 0',
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#c8a84b',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer',
+                              fontFamily: 'monospace'
+                            }}
+                          >
+                            {beliefTraining ? '↑ Close practice' : '👉 Practice spotting hidden assumptions →'}
+                          </button>
+                          {beliefTrainingLoading && (
+                            <div style={{ fontSize: '0.8rem', color: '#666660', marginTop: '8px', fontFamily: 'monospace' }}>
+                              Generating scenario...
+                            </div>
+                          )}
+                          {beliefTraining && (
+                            <TrainingCard
+                              scenario={beliefTraining}
+                              onClose={() => setBeliefTraining(null)}
+                            />
+                          )}
                         </div>
                       )}
 
@@ -602,6 +731,32 @@ export default function Home() {
                           <p style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: '#666660', fontStyle: 'italic', lineHeight: '1.6', margin: 0, borderLeft: '2px solid #2e2e2e', paddingLeft: '12px' }}>
                             {single.beliefSystem.incentiveSystem}
                           </p>
+                          <button
+                            onClick={handleIncentiveTraining}
+                            style={{
+                              marginTop: '12px',
+                              padding: '6px 0',
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#c8a84b',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer',
+                              fontFamily: 'monospace'
+                            }}
+                          >
+                            {incentiveTraining ? '↑ Close practice' : '👉 Practice spotting incentive structures →'}
+                          </button>
+                          {incentiveTrainingLoading && (
+                            <div style={{ fontSize: '0.8rem', color: '#666660', marginTop: '8px', fontFamily: 'monospace' }}>
+                              Generating scenario...
+                            </div>
+                          )}
+                          {incentiveTraining && (
+                            <TrainingCard
+                              scenario={incentiveTraining}
+                              onClose={() => setIncentiveTraining(null)}
+                            />
+                          )}
                         </div>
                       )}
 
