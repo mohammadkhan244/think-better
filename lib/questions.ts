@@ -45,7 +45,7 @@ Tone: genuinely curious, not accusatory — these questions expand the frame rat
 
 TEXT:
 """
-${text.slice(0, 6000)}
+${text.slice(0, 4000)}
 """
 
 FLOATER WEAKNESSES:
@@ -64,7 +64,7 @@ Return ONLY this exact JSON structure, nothing else. No markdown. No preamble:
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1500,
+      max_tokens: 1000,
       temperature: 0.7,
       messages: [{ role: 'user', content: prompt }]
     })

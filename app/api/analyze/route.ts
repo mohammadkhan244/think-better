@@ -9,6 +9,7 @@ import { detectSpeakers, diarizeWithLLM, groupBySpeaker } from '@/lib/speakers'
 import { detectDomain } from '@/lib/domainDetector'
 import { generateResources } from '@/lib/resources'
 import { extractBeliefSystem } from '@/lib/beliefSystem'
+import { extractDefaultNarrative } from '@/lib/defaultNarrative'
 
 function looksLikeConversation(text: string): boolean {
   const lines = text.split('\n').filter(l => l.trim().length > 0)
@@ -26,34 +27,6 @@ const DEFAULT_QUESTIONS = {
   missing: ['What perspective is entirely absent from this argument?']
 }
 
-async function analyzeSingleText(text: string) {
-  const floaterResult = runFLOATER(text)
-  const detectedIssues = runDetectors(text)
-  const rawImprovements = generateImprovements(floaterResult.scores, detectedIssues)
-
-  const [improvements, questions, agency] = await Promise.all([
-    enrichImprovementsWithEvidence(text, rawImprovements).catch(() => rawImprovements),
-    generateQuestions(text, floaterResult.scores, detectedIssues).catch(() => DEFAULT_QUESTIONS),
-    generateAgency(text, floaterResult.scores, detectedIssues).catch(() => ({
-      framing: 'Here is what this argument is resting on.',
-      bullets: [
-        'The weakest link in this argument is the evidence dimension — the core claims are asserted without sourcing.',
-        'At least one alternative explanation is not addressed.',
-        'The conclusion is stated with more certainty than the supporting points justify.'
-      ]
-    })),
-  ])
-
-  const overall = floaterResult.overall
-  const issueCount = detectedIssues.length
-  const highConfidence = detectedIssues.filter(i => i.confidence === 'HIGH').length
-
-  const summary =
-    (overall >= 7 ? 'Relatively strong reasoning. ' : overall >= 4 ? 'Moderate reasoning quality with notable gaps. ' : 'Significant reasoning weaknesses. ') +
-    (issueCount > 0 ? `${issueCount} bias or fallacy pattern(s) detected (${highConfidence} high-confidence).` : 'No common bias or fallacy patterns detected.')
-
-  return { floater: floaterResult, biasesAndFallacies: detectedIssues, improvements, followUpQuestions: questions, agency, summary }
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -74,7 +47,7 @@ export async function POST(req: NextRequest) {
     }
 
     const noCache = req.nextUrl.searchParams.get('nocache') === '1'
-    const cacheKey = getCacheKey(trimmed + '::v4')
+    const cacheKey = getCacheKey(trimmed + '::v5')
     if (!noCache) {
       const cached = getFromCache(cacheKey)
       if (cached) return NextResponse.json({ ...cached, fromCache: true, cacheStatus: 'hit' })
@@ -143,11 +116,13 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Single-speaker path ───────────────────────────────────────────────────
-    const analysis = await analyzeSingleText(trimmed)
+    const floaterResult = runFLOATER(trimmed)
+    const detectedIssues = runDetectors(trimmed)
+    const rawImprovements = generateImprovements(floaterResult.scores, detectedIssues)
 
-    const overall = analysis.floater.overall
-    const issueCount = analysis.biasesAndFallacies.length
-    const highConfidence = analysis.biasesAndFallacies.filter(i => i.confidence === 'HIGH').length
+    const overall = floaterResult.overall
+    const issueCount = detectedIssues.length
+    const highConfidence = detectedIssues.filter(i => i.confidence === 'HIGH').length
 
     const summary =
       (overall >= 7 ? 'This text demonstrates relatively strong reasoning. ' : overall >= 4 ? 'This text shows moderate reasoning quality with notable gaps. ' : 'This text has significant reasoning weaknesses. ') +
@@ -155,19 +130,47 @@ export async function POST(req: NextRequest) {
       'Use the follow-up questions to probe the gaps.'
 
     const domainResult = await detectDomain(trimmed)
-    const resources = await generateResources(trimmed, analysis.biasesAndFallacies, domainResult.domain)
-    const beliefSystem = await extractBeliefSystem(trimmed, false, [])
+
+    const [
+      improvements,
+      beliefSystem,
+      defaultNarrative,
+      agency,
+      questions,
+      resources,
+    ] = await Promise.all([
+      enrichImprovementsWithEvidence(trimmed, rawImprovements).catch(() => rawImprovements),
+      extractBeliefSystem(trimmed, false, []).catch(() => ({ coreAssumptions: [], loadBearingBeliefs: [], incentiveSystem: '', speakerComparison: null })),
+      extractDefaultNarrative(trimmed, domainResult.domain).catch(() => ({
+        narrative: 'The current conditions are natural rather than constructed.',
+        loadBearing: 'This narrative collapses if current arrangements can be shown to have authors, dates, and beneficiaries.',
+        whoBenefits: 'Those whose position depends on present arrangements feeling inevitable rather than chosen.',
+        ifItBreaksUpside: 'The conditions become negotiable — open to redesign rather than adaptation.',
+        ifItBreaksDownside: 'The stability that comes from shared assumptions about reality gets disrupted.'
+      })),
+      generateAgency(trimmed, floaterResult.scores, detectedIssues).catch(() => ({
+        framing: 'Here is what this argument is resting on.',
+        bullets: [
+          'The weakest link in this argument is the evidence dimension — the core claims are asserted without sourcing.',
+          'At least one alternative explanation is not addressed.',
+          'The conclusion is stated with more certainty than the supporting points justify.'
+        ]
+      })),
+      generateQuestions(trimmed, floaterResult.scores, detectedIssues).catch(() => DEFAULT_QUESTIONS),
+      generateResources(trimmed, detectedIssues, domainResult.domain).catch(() => ({ books: [] })),
+    ])
 
     const result = {
       mode: 'single' as const,
-      floater: analysis.floater,
-      biasesAndFallacies: analysis.biasesAndFallacies,
-      improvements: analysis.improvements,
-      followUpQuestions: analysis.followUpQuestions,
-      agency: analysis.agency,
+      floater: floaterResult,
+      biasesAndFallacies: detectedIssues,
+      improvements,
+      followUpQuestions: questions,
+      agency,
       domain: domainResult,
       resources,
       beliefSystem,
+      defaultNarrative,
       summary,
       fromCache: false,
     }

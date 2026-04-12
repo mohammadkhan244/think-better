@@ -27,7 +27,7 @@ and what it means for the argument's credibility.
 
 TEXT:
 """
-${text.slice(0, 4000)}
+${text.slice(0, 2500)}
 """
 
 LOWEST FLOATER DIMENSIONS:
@@ -49,7 +49,7 @@ Return ONLY this exact JSON, nothing else:
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 500,
+      max_tokens: 400,
       temperature: 0.4,
       messages: [{ role: 'user', content: prompt }]
     })

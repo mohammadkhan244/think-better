@@ -47,6 +47,13 @@ interface SingleResult {
   domain?: { domain: Domain; confidence: string }
   resources?: { books: BookEntry[] }
   beliefSystem?: BeliefSystem
+  defaultNarrative?: {
+    narrative: string
+    loadBearing: string
+    whoBenefits: string
+    ifItBreaksUpside: string
+    ifItBreaksDownside: string
+  }
   summary: string
   fromCache: boolean
 }
@@ -292,6 +299,8 @@ export default function Home() {
   const [beliefTrainingLoading, setBeliefTrainingLoading] = useState(false)
   const [incentiveTraining, setIncentiveTraining] = useState<TrainingScenario | null>(null)
   const [incentiveTrainingLoading, setIncentiveTrainingLoading] = useState(false)
+  const [narrativeTraining, setNarrativeTraining] = useState<TrainingScenario | null>(null)
+  const [narrativeTrainingLoading, setNarrativeTrainingLoading] = useState(false)
 
   const toggleExpanded = (key: string) =>
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
@@ -355,6 +364,7 @@ export default function Home() {
     setTrainingScenario(null)
     setBeliefTraining(null)
     setIncentiveTraining(null)
+    setNarrativeTraining(null)
     const interval = startProgress()
     try {
       const res = await fetch('/api/analyze', {
@@ -411,6 +421,24 @@ export default function Home() {
     }).then(r => r.json())
     setBeliefTraining(res.scenario)
     setBeliefTrainingLoading(false)
+  }
+
+  const handleNarrativeTraining = async () => {
+    if (narrativeTraining) {
+      setNarrativeTraining(null)
+      return
+    }
+    setNarrativeTrainingLoading(true)
+    const res = await fetch('/api/training/narrative', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        narrative: (result as SingleResult)?.defaultNarrative?.narrative ?? '',
+        domain: (result as SingleResult)?.domain?.domain ?? 'general'
+      })
+    }).then(r => r.json())
+    setNarrativeTraining(res.scenario)
+    setNarrativeTrainingLoading(false)
   }
 
   const handleIncentiveTraining = async () => {
@@ -889,6 +917,56 @@ export default function Home() {
                 </section>
               </div>
 
+              {/* ── Default Narrative (beliefs tab, after OBS) ── */}
+              {single.defaultNarrative?.narrative && (
+                <div className={tabClass('beliefs')} style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #2e2e2e' }}>
+                  <h2 style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c8a84b', marginBottom: '4px', marginTop: 0, fontWeight: 600 }}>
+                    Default Narrative
+                  </h2>
+                  <p style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', fontStyle: 'italic', marginBottom: '20px', marginTop: 0 }}>
+                    The cultural story this argument is swimming in — never examined because it reads as reality.
+                  </p>
+
+                  <div style={{ padding: '14px 16px', border: '1px solid #c8a84b', background: 'rgba(200, 168, 75, 0.04)', marginBottom: '16px' }}>
+                    <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c8a84b', marginBottom: '6px' }}>
+                      The Narrative
+                    </div>
+                    <p style={{ fontFamily: 'monospace', fontSize: '0.95rem', lineHeight: '1.6', color: '#e8e8e0', margin: 0, fontStyle: 'italic' }}>
+                      &ldquo;{single.defaultNarrative.narrative}&rdquo;
+                    </p>
+                  </div>
+
+                  {[
+                    { label: 'What Makes It Load-Bearing', value: single.defaultNarrative.loadBearing },
+                    { label: 'Who Benefits From It Staying Invisible', value: single.defaultNarrative.whoBenefits },
+                    { label: 'If It Breaks — What Becomes Possible', value: single.defaultNarrative.ifItBreaksUpside },
+                    { label: 'If It Breaks — What Gets Destabilized', value: single.defaultNarrative.ifItBreaksDownside },
+                  ].map((row, i) => (
+                    <div key={i} style={{ paddingTop: '12px', paddingBottom: '12px', borderBottom: i < 3 ? '1px solid #2e2e2e' : 'none' }}>
+                      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#666660', marginBottom: '4px' }}>
+                        {row.label}
+                      </div>
+                      <p style={{ fontFamily: 'monospace', fontSize: '0.875rem', lineHeight: '1.6', color: '#e8e8e0', margin: 0 }}>
+                        {row.value}
+                      </p>
+                    </div>
+                  ))}
+
+                  <button
+                    onClick={handleNarrativeTraining}
+                    style={{ marginTop: '16px', padding: '6px 0', background: 'transparent', border: 'none', color: '#c8a84b', fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'monospace' }}
+                  >
+                    {narrativeTraining ? '↑ Close practice' : '👉 Practice spotting default narratives →'}
+                  </button>
+                  {narrativeTrainingLoading && (
+                    <div style={{ fontSize: '0.8rem', color: '#666660', marginTop: '8px', fontFamily: 'monospace' }}>Generating scenario...</div>
+                  )}
+                  {narrativeTraining && (
+                    <TrainingCard scenario={narrativeTraining} onClose={() => setNarrativeTraining(null)} />
+                  )}
+                </div>
+              )}
+
               {/* ── 4. Agency + Summary (overview-bottom) ── */}
               <div className={tabClass('overview')}>
                 {single.agency && single.agency.bullets.length > 0 && (
@@ -928,20 +1006,20 @@ export default function Home() {
                     Questions That Pressure-Test This Argument
                   </h2>
                   <QuestionGroup
-                    title="If you're defending this position"
-                    subhead="Questions a critic will use against you — have your answers ready."
+                    title="Questions that will come for this argument"
+                    subhead="The sharpest challenges to this argument — worth having answers for."
                     questions={single.followUpQuestions.defend}
                     startIndex={1}
                   />
                   <QuestionGroup
-                    title="If you're challenging this argument"
-                    subhead="Sequenced by leverage — start with the first question."
+                    title="Where to press, in order"
+                    subhead="Ordered by leverage. The first question does the most damage."
                     questions={single.followUpQuestions.challenge}
                     startIndex={4}
                   />
                   <QuestionGroup
-                    title="What this argument never addressed"
-                    subhead="Not what's wrong with the argument — what's outside its frame entirely."
+                    title="Outside the frame"
+                    subhead="Not flaws — absences. What this argument never thought to address."
                     questions={single.followUpQuestions.missing}
                     startIndex={7}
                     isLast

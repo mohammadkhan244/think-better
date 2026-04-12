@@ -22,7 +22,7 @@ ARGUMENT DOMAIN: ${domain}
 
 ARGUMENT TOPIC (summary):
 """
-${text.slice(0, 2400)}
+${text.slice(0, 1500)}
 """
 
 DETECTED REASONING PATTERNS:
@@ -100,7 +100,7 @@ Return ONLY this exact JSON. No markdown. No preamble. No explanation:
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 600,
+      max_tokens: 500,
       temperature: 0,
       messages: [{ role: 'user', content: prompt }]
     })

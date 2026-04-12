@@ -40,7 +40,7 @@ CRITICAL RULES:
 
 Text:
 """
-${text.slice(0, 1500)}
+${text.slice(0, 1000)}
 """
 
 Reply with ONLY this JSON, nothing else:
