@@ -11,6 +11,7 @@ export type Domain =
   | 'empirical'
   | 'cultural'
   | 'general'
+  | 'fiction'
 
 export interface DomainResult {
   domain: Domain
@@ -31,12 +32,15 @@ Categories:
 - business: arguing about strategy, markets, or organizational decisions
 - personal: primarily sharing personal experience or reflection without a structural argument
 - general: mixed or does not fit any category
+- fiction: creative writing, short stories, novels, screenplays, narrative prose, poetry, dialogue-driven scenes, fictional characters, imagined scenarios
 
 CRITICAL RULES:
 - Classify by the ARGUMENT being made, not by words present in the text
 - A cultural essay that mentions religion, history, or etymology to support a social argument is CULTURAL, not theological
 - A political essay that cites statistics is POLITICAL, not empirical
 - When in doubt between cultural and political, ask: is it arguing for a specific policy (political) or describing how society works (cultural)?
+- If the text contains fictional characters, dialogue tags (he said/she said), scene-setting description, or narrative prose — classify as fiction even if it discusses real scientific concepts like wormholes or quantum physics
+- Fiction is identifiable by: named characters acting in scenes, past-tense narrative voice, dialogue, descriptive scene-setting, no citations or logical argument structure
 
 Text:
 """
@@ -60,7 +64,7 @@ Reply with ONLY this JSON, nothing else:
 
     const validDomains: Domain[] = [
       'theological', 'philosophical', 'political', 'personal',
-      'business', 'empirical', 'cultural', 'general'
+      'business', 'empirical', 'cultural', 'general', 'fiction'
     ]
     const domain = validDomains.includes(parsed.domain) ? parsed.domain as Domain : 'general'
     const confidence = ['high', 'medium', 'low'].includes(parsed.confidence)

@@ -111,6 +111,10 @@ const domainConfig: Partial<Record<Domain, { label: string; explanation: string 
   cultural: {
     label: 'Cultural & Social Argument',
     explanation: 'This argument operates as cultural or social criticism. Falsifiability and Replicability scores are less meaningful here — focus on Logic, Objectivity, and whether the argument seriously considers alternative explanations for the patterns it identifies.'
+  },
+  fiction: {
+    label: 'Creative Writing',
+    explanation: 'This appears to be creative or fictional writing. The Reasoning Machine analyzes argumentative reasoning — FLOATER scores, bias detection, and belief system extraction are not designed for fiction. The questions below treat the narrative structure as the subject.'
   }
 }
 
@@ -462,6 +466,7 @@ export default function Home() {
 
   const single = result?.mode === 'single' ? result : null
   const multi = result?.mode === 'multi-speaker' ? result : null
+  const isFiction = single?.domain?.domain === 'fiction'
 
   const filteredIssues = single?.biasesAndFallacies.filter(issue => {
     if (filter === 'all') return true
@@ -727,6 +732,7 @@ export default function Home() {
                   </div>
                 </section>
 
+                {!isFiction && (
                 <section className="mb-6">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase">
@@ -784,9 +790,11 @@ export default function Home() {
                     <p className="text-xs font-mono text-[#444440]">No common bias or fallacy patterns detected.</p>
                   )}
                 </section>
+                )}
               </div>
 
               {/* ── 3. Operating Belief System (beliefs) ── */}
+              {!isFiction && (
               <div className={tabClass('beliefs')}>
                 <section className="mb-6">
                   <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-3">
@@ -916,9 +924,10 @@ export default function Home() {
                   )}
                 </section>
               </div>
+              )}
 
               {/* ── Default Narrative (beliefs tab, after OBS) ── */}
-              {single.defaultNarrative?.narrative && (
+              {!isFiction && single.defaultNarrative?.narrative && (
                 <div className={tabClass('beliefs')} style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #2e2e2e' }}>
                   <h2 style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c8a84b', marginBottom: '4px', marginTop: 0, fontWeight: 600 }}>
                     Default Narrative
@@ -969,7 +978,7 @@ export default function Home() {
 
               {/* ── 4. Agency + Summary (overview-bottom) ── */}
               <div className={tabClass('overview')}>
-                {single.agency && single.agency.bullets.length > 0 && (
+                {!isFiction && single.agency && single.agency.bullets.length > 0 && (
                   <div style={{
                     borderLeft: '3px solid #c8a84b', padding: '16px',
                     marginBottom: '24px',
@@ -1003,22 +1012,27 @@ export default function Home() {
               <div className={tabClass('questions')}>
                 <section className="mb-6">
                   <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase mb-6">
-                    Questions That Pressure-Test This Argument
+                    {isFiction ? 'Questions About This Narrative' : 'Questions That Pressure-Test This Argument'}
                   </h2>
+                  {isFiction && (
+                    <p style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', fontStyle: 'italic', marginBottom: '24px', marginTop: 0 }}>
+                      These questions treat the structure of the narrative — not any claims about reality — as the subject.
+                    </p>
+                  )}
                   <QuestionGroup
-                    title="Questions that will come for this argument"
+                    title={isFiction ? 'On the narrator and point of view' : 'Questions that will come for this argument'}
                     subhead="The sharpest challenges to this argument — worth having answers for."
                     questions={single.followUpQuestions.defend}
                     startIndex={1}
                   />
                   <QuestionGroup
-                    title="Where to press, in order"
+                    title={isFiction ? "On structure and what's unresolved" : 'Where to press, in order'}
                     subhead="Ordered by leverage. The first question does the most damage."
                     questions={single.followUpQuestions.challenge}
                     startIndex={4}
                   />
                   <QuestionGroup
-                    title="Outside the frame"
+                    title={isFiction ? 'What the narrative leaves unnamed' : 'Outside the frame'}
                     subhead="Not flaws — absences. What this argument never thought to address."
                     questions={single.followUpQuestions.missing}
                     startIndex={7}
@@ -1029,6 +1043,7 @@ export default function Home() {
 
               {/* ── 6. Go Deeper ── */}
               <div className={tabClass('deeper')}>
+                {!isFiction && (
                 <section>
                   {(single.resources?.books?.length ?? 0) > 0 ? (
                     <>
@@ -1063,6 +1078,7 @@ export default function Home() {
                     <p className="font-mono text-xs text-[#444440]">Book recommendations will appear here.</p>
                   )}
                 </section>
+                )}
               </div>
 
             </div>
