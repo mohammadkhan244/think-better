@@ -1,6 +1,25 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+
+interface ISpeechRecognitionEvent extends Event {
+  readonly results: { length: number; [i: number]: { [j: number]: { transcript: string } } }
+}
+interface ISpeechRecognition extends EventTarget {
+  continuous: boolean; interimResults: boolean; lang: string
+  onstart: (() => void) | null
+  onend: (() => void) | null
+  onerror: (() => void) | null
+  onresult: ((e: ISpeechRecognitionEvent) => void) | null
+  start(): void; stop(): void
+}
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => ISpeechRecognition
+    webkitSpeechRecognition?: new () => ISpeechRecognition
+    _recognition?: ISpeechRecognition | null
+  }
+}
 
 type Tab = 'text' | 'pdf' | 'youtube' | 'article'
 
@@ -49,7 +68,16 @@ export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
   const [articleLoading, setArticleLoading] = useState(false)
   const [articleError, setArticleError] = useState('')
   const [isDragging, setIsDragging] = useState(false)
+  const [isListening, setIsListening] = useState(false)
+  const [speechSupported, setSpeechSupported] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setSpeechSupported(
+      'SpeechRecognition' in window ||
+      'webkitSpeechRecognition' in window
+    )
+  }, [])
 
   const currentWordCount =
     activeTab === 'text' ? countWords(textValue)
@@ -149,6 +177,53 @@ export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
   const isValidYoutubeUrl = (url: string) =>
     /youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\//.test(url)
 
+  const startListening = () => {
+    const SpeechRecognitionClass = window.SpeechRecognition ?? window.webkitSpeechRecognition
+    if (!SpeechRecognitionClass) return
+
+    const recognition = new SpeechRecognitionClass()
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.lang = 'en-US'
+
+    recognition.onstart = () => setIsListening(true)
+    recognition.onend = () => setIsListening(false)
+    recognition.onerror = () => setIsListening(false)
+
+    recognition.onresult = (event: ISpeechRecognitionEvent) => {
+      let transcript = ''
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript
+      }
+      setTextValue(prev => {
+        const separator = prev && !prev.endsWith(' ') ? ' ' : ''
+        return prev + separator + transcript
+      })
+    }
+
+    recognition.start()
+    window._recognition = recognition
+  }
+
+  const stopListening = () => {
+    if (window._recognition) {
+      window._recognition.stop()
+      window._recognition = null
+    }
+    setIsListening(false)
+  }
+
+  const toggleListening = () => {
+    if (isListening) {
+      stopListening()
+    } else {
+      startListening()
+    }
+  }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (isListening) stopListening() }, [activeTab])
+
   const tabs: { id: Tab; label: string }[] = [
     { id: 'text', label: 'Text' },
     { id: 'pdf', label: 'PDF' },
@@ -158,6 +233,12 @@ export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
 
   return (
     <div className="border border-[#2e2e2e]">
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1 }
+          50% { opacity: 0.3 }
+        }
+      `}</style>
       <div className="flex border-b border-[#2e2e2e]">
         {tabs.map((tab) => (
           <button
@@ -336,11 +417,50 @@ export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
         )}
 
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#2e2e2e]">
-          <span className="text-xs font-mono text-[#444440]">
-            {currentWordCount} word{currentWordCount !== 1 ? 's' : ''}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span className="text-xs font-mono text-[#444440]">
+              {currentWordCount} word{currentWordCount !== 1 ? 's' : ''}
+            </span>
+            {activeTab === 'text' && speechSupported && (
+              <button
+                onClick={toggleListening}
+                title={isListening ? 'Stop recording' : 'Speak your argument'}
+                style={{
+                  padding: '6px 12px',
+                  minHeight: '36px',
+                  background: isListening ? 'rgba(200, 168, 75, 0.15)' : 'transparent',
+                  border: isListening ? '1px solid #c8a84b' : '1px solid #2e2e2e',
+                  color: isListening ? '#c8a84b' : '#444440',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease',
+                  fontFamily: 'monospace'
+                }}
+              >
+                {isListening ? (
+                  <>
+                    <span style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: '#c8a84b',
+                      display: 'inline-block',
+                      animation: 'pulse 1s infinite'
+                    }} />
+                    Stop
+                  </>
+                ) : (
+                  <>🎙 Speak</>
+                )}
+              </button>
+            )}
+          </div>
           <button
-            onClick={() => onAnalyze(getCurrentText(), activeTab)}
+            onClick={() => { if (isListening) stopListening(); onAnalyze(getCurrentText(), activeTab) }}
             disabled={!canAnalyze}
             className="px-6 py-2 text-xs font-mono border transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-[#c8a84b] text-[#c8a84b] hover:bg-[#c8a84b] hover:text-[#0e0e0e]"
           >

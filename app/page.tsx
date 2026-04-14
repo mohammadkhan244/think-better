@@ -466,7 +466,7 @@ export default function Home() {
 
   const single = result?.mode === 'single' ? result : null
   const multi = result?.mode === 'multi-speaker' ? result : null
-  const isFiction = single?.domain?.domain === 'fiction'
+  const isFiction = result !== null && result.mode === 'single' && result.domain?.domain === 'fiction'
 
   const filteredIssues = single?.biasesAndFallacies.filter(issue => {
     if (filter === 'all') return true
