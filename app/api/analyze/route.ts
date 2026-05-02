@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     }
 
     const noCache = req.nextUrl.searchParams.get('nocache') === '1'
-    const cacheKey = getCacheKey(trimmed + '::v6')
+    const cacheKey = getCacheKey(trimmed + '::v7')
     if (!noCache) {
       const cached = getFromCache(cacheKey)
       if (cached) return NextResponse.json({ ...cached, fromCache: true, cacheStatus: 'hit' })
@@ -105,10 +105,30 @@ export async function POST(req: NextRequest) {
         })
       )
 
+      const multiDomainResult = await detectDomain(trimmed)
+
+      const [multiBeliefSystem, multiDefaultNarrative, multiResources] = await Promise.all([
+        extractBeliefSystem(trimmed, true, blocks.map(b => b.speaker)).catch(() => ({
+          coreAssumptions: [], loadBearingBeliefs: [], incentiveSystem: '', speakerComparison: null
+        })),
+        extractDefaultNarrative(trimmed, multiDomainResult.domain).catch(() => ({
+          narrative: 'The current conditions are natural rather than constructed.',
+          loadBearing: 'This narrative collapses if current arrangements can be shown to have authors, dates, and beneficiaries.',
+          whoBenefits: 'Those whose position depends on present arrangements feeling inevitable rather than chosen.',
+          ifItBreaksUpside: 'The conditions become negotiable — open to redesign rather than adaptation.',
+          ifItBreaksDownside: 'The stability that comes from shared assumptions about reality gets disrupted.'
+        })),
+        generateResources(trimmed, allIssues, multiDomainResult.domain).catch(() => ({ books: [] })),
+      ])
+
       const result = {
         mode: 'multi-speaker' as const,
         diarizationMethod,
         speakers: speakerResults,
+        domain: multiDomainResult,
+        beliefSystem: multiBeliefSystem,
+        defaultNarrative: multiDefaultNarrative,
+        resources: multiResources,
         fromCache: false,
       }
       if (!noCache) setInCache(cacheKey, result)
