@@ -175,6 +175,16 @@ export async function POST(req: NextRequest) {
       fromCache: false,
     }
     if (!noCache) setInCache(cacheKey, result)
+
+    // Fire and forget — do not await, never block the response
+    if (detectedIssues.length > 0) {
+      fetch(process.env.SHEETS_URL || '', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ incrementAssumptions: detectedIssues.length })
+      }).catch(() => {})
+    }
+
     return NextResponse.json({ ...result, cacheStatus: noCache ? 'bypassed' : 'miss' })
 
   } catch (err) {

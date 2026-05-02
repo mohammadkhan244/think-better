@@ -283,10 +283,12 @@ export default function Home() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [activeTab, setActiveTab] = useState<TabId>('questions')
   const [originalText, setOriginalText] = useState('')
+  const [assumptionsCount, setAssumptionsCount] = useState<number | null>(null)
 
   // Progress state
   const [progress, setProgress] = useState(0)
   const [progressLabel, setProgressLabel] = useState('')
+  const [progressDetail, setProgressDetail] = useState('')
   const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
@@ -294,6 +296,17 @@ export default function Home() {
       if (progressInterval) clearInterval(progressInterval)
     }
   }, [progressInterval])
+
+  useEffect(() => {
+    fetch('/api/stats')
+      .then(r => r.json())
+      .then(d => {
+        if (typeof d.assumptionsCount === 'number') {
+          setAssumptionsCount(d.assumptionsCount)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   // Training state
   const [trainingPattern, setTrainingPattern] = useState<string | null>(null)
@@ -309,20 +322,21 @@ export default function Home() {
   const toggleExpanded = (key: string) =>
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
 
-  const startProgress = () => {
+  const startProgress = (wordCount = 0) => {
     setProgress(0)
-    setProgressLabel('Reading the argument...')
+    setProgressLabel('Parsing the text...')
+    setProgressDetail(wordCount > 0 ? `${wordCount.toLocaleString()} words loaded` : '')
 
     const stages = [
-      { target: 12, label: 'Reading the argument...', duration: 1500 },
-      { target: 25, label: 'Running FLOATER analysis...', duration: 3000 },
-      { target: 40, label: 'Scanning for reasoning patterns...', duration: 4000 },
-      { target: 55, label: 'Mapping the belief system...', duration: 5000 },
-      { target: 68, label: 'Identifying incentive structures...', duration: 4000 },
-      { target: 78, label: 'Generating questions...', duration: 4000 },
-      { target: 87, label: 'Finding books...', duration: 3000 },
-      { target: 94, label: 'Almost done...', duration: 3000 },
-      { target: 98, label: 'Finishing up...', duration: 5000 },
+      { target: 6,  label: 'Parsing the text...',               detail: wordCount > 0 ? `${wordCount.toLocaleString()} words loaded` : 'Reading input',                                          duration: 800  },
+      { target: 14, label: 'Running FLOATER scoring...',         detail: '7 dimensions — Falsifiability, Logic, Objectivity, Alternatives, Tentativeness, Evidence, Replicability',              duration: 4000 },
+      { target: 26, label: 'Scanning for reasoning patterns...', detail: 'Checking against 40+ known cognitive biases and logical fallacies',                                                    duration: 6000 },
+      { target: 40, label: 'Extracting the belief system...',    detail: 'Finding what this argument assumes to be true — never stated, but load-bearing',                                       duration: 7000 },
+      { target: 52, label: 'Surfacing the default narrative...', detail: 'Identifying the cultural story this argument takes for granted',                                                       duration: 5000 },
+      { target: 62, label: 'Mapping incentive structures...',    detail: 'Analyzing who benefits if this argument is accepted as true',                                                          duration: 5000 },
+      { target: 74, label: 'Generating follow-up questions...',  detail: "Building the sharpest challenges to this argument's weakest links",                                                   duration: 6000 },
+      { target: 85, label: 'Finding relevant books...',          detail: "Matching books that challenge or expand the argument's framing",                                                       duration: 5000 },
+      { target: 95, label: 'Almost done...',                     detail: 'Compiling and organizing your results',                                                                                duration: 7000 },
     ]
 
     let currentStage = 0
@@ -338,6 +352,7 @@ export default function Home() {
         currentProgress = Math.min(currentProgress + increment, stage.target)
         setProgress(Math.round(currentProgress))
         setProgressLabel(stage.label)
+        setProgressDetail(stage.detail)
       } else {
         currentStage++
       }
@@ -351,6 +366,7 @@ export default function Home() {
     clearInterval(interval)
     setProgress(100)
     setProgressLabel('Done.')
+    setProgressDetail('')
     setTimeout(() => {
       setProgress(0)
       setProgressLabel('')
@@ -369,7 +385,7 @@ export default function Home() {
     setBeliefTraining(null)
     setIncentiveTraining(null)
     setNarrativeTraining(null)
-    const interval = startProgress()
+    const interval = startProgress(text.trim().split(/\s+/).filter(Boolean).length)
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
@@ -379,11 +395,19 @@ export default function Home() {
       const data = await res.json()
       completeProgress(interval)
       if (data.error) setError(data.error)
-      else setResult(data)
+      else {
+        setResult(data)
+        setAssumptionsCount(prev =>
+          prev !== null
+            ? prev + (data.biasesAndFallacies?.length || 0)
+            : null
+        )
+      }
     } catch {
       clearInterval(interval)
       setProgress(0)
       setProgressLabel('')
+      setProgressDetail('')
       setError('Analysis failed. Please try again.')
     } finally {
       setIsLoading(false)
@@ -515,7 +539,7 @@ export default function Home() {
           </header>
 
           <section className="mb-8">
-            <InputTabs onAnalyze={handleAnalyze} isLoading={isLoading} />
+            <InputTabs onAnalyze={handleAnalyze} isLoading={isLoading} assumptionsCount={assumptionsCount} />
           </section>
 
           {error && (
@@ -567,44 +591,29 @@ export default function Home() {
 
           {isLoading && (
             <div style={{ marginTop: '24px', padding: '20px 0', width: '100%', boxSizing: 'border-box' }}>
-              <div style={{
-                width: '100%',
-                height: '3px',
-                background: '#2e2e2e',
-                borderRadius: '2px',
-                overflow: 'hidden',
-                marginBottom: '12px'
-              }}>
-                <div style={{
-                  height: '100%',
-                  width: `${progress}%`,
-                  background: '#c8a84b',
-                  borderRadius: '2px',
-                  transition: 'width 0.1s ease-out'
-                }} />
+              <div style={{ width: '100%', height: '3px', background: '#2e2e2e', borderRadius: '2px', overflow: 'hidden', marginBottom: '16px' }}>
+                <div style={{ height: '100%', width: `${progress}%`, background: '#c8a84b', borderRadius: '2px', transition: 'width 0.1s ease-out' }} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{
-                  fontSize: '0.75rem',
-                  color: '#666660',
-                  fontStyle: 'italic',
-                  fontFamily: 'monospace',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  maxWidth: 'calc(100% - 50px)'
-                }}>
-                  {progressLabel}
-                </span>
-                <span style={{
-                  fontSize: '0.75rem',
-                  color: '#c8a84b',
-                  fontFamily: 'monospace',
-                  fontWeight: 600
-                }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1, marginRight: '16px' }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#e8e8e0', marginBottom: '5px' }}>
+                    {progressLabel}
+                  </div>
+                  {progressDetail && (
+                    <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#444440', lineHeight: '1.5' }}>
+                      {progressDetail}
+                    </div>
+                  )}
+                </div>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#c8a84b', fontWeight: 600, flexShrink: 0 }}>
                   {progress}%
                 </span>
               </div>
+              {originalText.trim().split(/\s+/).filter(Boolean).length > 2000 && (
+                <div style={{ marginTop: '14px', fontFamily: 'monospace', fontSize: '0.7rem', color: '#666660', fontStyle: 'italic' }}>
+                  Large text — analysis may take up to a minute.
+                </div>
+              )}
             </div>
           )}
 
@@ -1080,6 +1089,55 @@ export default function Home() {
                 </section>
                 )}
               </div>
+
+              {result && (
+                <div style={{
+                  marginTop: '48px',
+                  paddingTop: '24px',
+                  borderTop: '1px solid #2e2e2e',
+                  textAlign: 'center'
+                }}>
+                  <p style={{
+                    fontSize: '0.8rem',
+                    color: '#666660',
+                    lineHeight: '1.7',
+                    marginBottom: '16px',
+                    maxWidth: '380px',
+                    margin: '0 auto 16px auto',
+                    fontFamily: 'monospace'
+                  }}>
+                    This tool costs real money to run.
+                    If it was worth something to you,
+                    contribute what feels right.
+                  </p>
+                  <a
+                    href="https://buy.stripe.com/5kQ4gz3Eo3O41AS8Gt4wM03"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      padding: '10px 24px',
+                      border: '1px solid #c8a84b',
+                      color: '#c8a84b',
+                      background: 'transparent',
+                      fontSize: '0.85rem',
+                      textDecoration: 'none',
+                      letterSpacing: '0.04em',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      fontFamily: 'monospace'
+                    }}
+                    onMouseEnter={e => {
+                      (e.target as HTMLElement).style.background = 'rgba(200, 168, 75, 0.1)'
+                    }}
+                    onMouseLeave={e => {
+                      (e.target as HTMLElement).style.background = 'transparent'
+                    }}
+                  >
+                    Keep it running →
+                  </a>
+                </div>
+              )}
 
             </div>
           )}
