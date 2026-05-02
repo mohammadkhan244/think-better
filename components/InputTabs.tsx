@@ -441,7 +441,7 @@ export default function InputTabs({ onAnalyze, isLoading, assumptionsCount }: In
               letterSpacing: '0.04em',
               fontFamily: 'monospace'
             }}>
-              assumptions surfaced
+              assumptions surfaced so far
             </span>
           </div>
         )}

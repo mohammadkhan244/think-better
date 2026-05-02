@@ -334,36 +334,39 @@ export default function Home() {
 
   const startProgress = (wordCount = 0) => {
     setProgress(0)
-    setProgressLabel('Parsing the text...')
+    setProgressLabel('Reading the text...')
     setProgressDetail(wordCount > 0 ? `${wordCount.toLocaleString()} words loaded` : '')
 
     const stages = [
-      { target: 10, label: 'Parsing the text...',               detail: wordCount > 0 ? `${wordCount.toLocaleString()} words loaded` : 'Reading input',                                          duration: 1000 },
-      { target: 22, label: 'Running FLOATER scoring...',         detail: '7 dimensions — Falsifiability, Logic, Objectivity, Alternatives, Tentativeness, Evidence, Replicability',              duration: 2000 },
-      { target: 36, label: 'Scanning for reasoning patterns...', detail: 'Checking against 40+ known cognitive biases and logical fallacies',                                                    duration: 2500 },
-      { target: 50, label: 'Extracting the belief system...',    detail: 'Finding what this argument assumes to be true — never stated, but load-bearing',                                       duration: 3000 },
-      { target: 62, label: 'Surfacing the default narrative...', detail: 'Identifying the cultural story this argument takes for granted',                                                       duration: 2500 },
-      { target: 73, label: 'Mapping incentive structures...',    detail: 'Analyzing who benefits if this argument is accepted as true',                                                          duration: 2500 },
-      { target: 83, label: 'Generating follow-up questions...',  detail: "Building the sharpest challenges to this argument's weakest links",                                                   duration: 3000 },
-      { target: 91, label: 'Finding relevant books...',          detail: "Matching books that challenge or expand the argument's framing",                                                       duration: 2500 },
-      { target: 97, label: 'Almost done...',                     detail: 'Compiling and organizing your results',                                                                                duration: 5000 },
+      { target: 8,  label: 'Reading the text...',                detail: wordCount > 0 ? `${wordCount.toLocaleString()} words loaded` : 'Parsing input',                                           duration: 800  },
+      { target: 20, label: 'Scoring the reasoning...',           detail: 'Running FLOATER — 7 dimensions including Falsifiability, Logic, and Evidence',                                           duration: 1500 },
+      { target: 34, label: 'Finding the assumptions...',         detail: 'Surfacing what this argument treats as obviously true — the water it swims in',                                          duration: 2000 },
+      { target: 47, label: 'Checking for bias patterns...',      detail: 'Scanning against 40+ known cognitive biases and logical fallacies',                                                     duration: 2000 },
+      { target: 59, label: 'Surfacing the default narrative...', detail: 'What cultural story is this argument taking for granted?',                                                              duration: 2000 },
+      { target: 70, label: 'Detecting the incentive field...',   detail: 'Who benefits if this argument wins? What does the author gain from being right?',                                       duration: 2000 },
+      { target: 81, label: 'Building the questions...',          detail: "Generating the sharpest challenges to this argument's weakest points",                                                  duration: 2000 },
+      { target: 90, label: 'Gathering the books...',             detail: 'Finding what challenges or expands the framing — not more of what you already believe',                                 duration: 2000 },
+      { target: 97, label: 'Compiling results...',               detail: 'Putting it all together',                                                                                               duration: 3000 },
     ]
 
     let currentStage = 0
     let currentProgress = 0
+    let stageStartProgress = 0
 
     const interval = setInterval(() => {
       if (currentStage >= stages.length) return
 
       const stage = stages[currentStage]
+      const totalTicks = stage.duration / 100
+      const increment = (stage.target - stageStartProgress) / totalTicks
 
-      if (currentProgress < stage.target) {
-        const increment = (stage.target - currentProgress) / (stage.duration / 100)
-        currentProgress = Math.min(currentProgress + increment, stage.target)
-        setProgress(Math.round(currentProgress))
-        setProgressLabel(stage.label)
-        setProgressDetail(stage.detail)
-      } else {
+      currentProgress = Math.min(currentProgress + increment, stage.target)
+      setProgress(Math.round(currentProgress))
+      setProgressLabel(stage.label)
+      setProgressDetail(stage.detail)
+
+      if (currentProgress >= stage.target) {
+        stageStartProgress = stage.target
         currentStage++
       }
     }, 100)
