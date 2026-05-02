@@ -19,7 +19,7 @@ export async function GET() {
     return NextResponse.json({
       assumptionsCount: data.assumptionsCount || 0
     })
-  } catch (err) {
+  } catch {
     return NextResponse.json({ assumptionsCount: 0 })
   }
 }
