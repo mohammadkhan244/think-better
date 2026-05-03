@@ -14,12 +14,21 @@ export async function extractBeliefSystem(
   speakers: string[]
 ): Promise<BeliefSystemResult> {
 
-  const speakerInstruction = hasSpeakers && speakers.length > 1
+  const isMulti = hasSpeakers && speakers.length > 1
+
+  const speakerInstruction = isMulti
     ? `The text contains multiple speakers: ${speakers.join(', ')}.
-       For each speaker, identify their distinct underlying beliefs.
-       Focus on where their belief systems diverge — that is usually
-       where the real disagreement lives, beneath the stated topic.`
+       Extract the SHARED belief system of the conversation (items 1-3),
+       then for item 4 identify each speaker's DISTINCT core beliefs and
+       where their belief systems actually diverge beneath the stated topic.`
     : `Analyze the single argument or speaker present.`
+
+  const speakerComparisonTemplate = isMulti
+    ? `[
+    { "speaker": "${speakers[0]}", "coreBeliefs": ["Belief one.", "Belief two.", "Belief three."] },
+    { "speaker": "${speakers[1]}", "coreBeliefs": ["Belief one.", "Belief two.", "Belief three."] }
+  ]`
+    : `null`
 
   const prompt = `You are extracting the operating belief system
 underneath a piece of text — not what is said, but what must be
@@ -30,7 +39,7 @@ ${speakerInstruction}
 WHAT TO EXTRACT:
 
 1. CORE ASSUMPTIONS (3-5 items)
-What does this argument treat as permanently, obviously true about
+What does this conversation treat as permanently, obviously true about
 how the world works? These are never stated — they are the water
 the fish does not notice. Examples: "expertise equals authority,"
 "markets self-correct," "human nature is fixed."
@@ -45,10 +54,11 @@ Who benefits if this argument wins? What does the author gain —
 materially, socially, or psychologically — from this position
 being accepted as true?
 
-4. SPEAKER COMPARISON (only if multiple speakers)
-For each speaker, list 2-3 core beliefs. Then identify where their
-belief systems actually diverge — the real disagreement beneath
-the stated topic.
+4. SPEAKER COMPARISON (required — populate for every speaker listed)
+For each speaker, list exactly 3 core beliefs that are SPECIFIC to
+that speaker — beliefs the other speaker does not clearly share.
+These must be implicit, never explicitly stated. Focus on where
+their worldviews actually differ beneath the surface topic.
 
 STRICT RULES:
 - Do not restate what the argument says — extract what it assumes
@@ -74,7 +84,7 @@ Return ONLY this exact JSON, nothing else. No markdown. No preamble:
     "This argument collapses if Y is false."
   ],
   "incentiveSystem": "One sentence on who benefits and how.",
-  "speakerComparison": null
+  "speakerComparison": ${speakerComparisonTemplate}
 }`
 
   try {
