@@ -17,7 +17,8 @@ export async function GET() {
     const data = await res.json()
 
     return NextResponse.json({
-      assumptionsCount: data.assumptionsCount || 0
+      assumptionsCount: data.assumptionsCount || 0,
+      argumentsCount: data.argumentsCount || 0
     })
   } catch {
     return NextResponse.json({ assumptionsCount: 0 })

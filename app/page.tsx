@@ -294,6 +294,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>('questions')
   const [originalText, setOriginalText] = useState('')
   const [assumptionsCount, setAssumptionsCount] = useState<number | null>(null)
+  const [argumentsCount, setArgumentsCount] = useState<number | null>(null)
 
   // Progress state
   const [progress, setProgress] = useState(0)
@@ -313,6 +314,9 @@ export default function Home() {
       .then(d => {
         if (typeof d.assumptionsCount === 'number') {
           setAssumptionsCount(d.assumptionsCount)
+        }
+        if (typeof d.argumentsCount === 'number') {
+          setArgumentsCount(d.argumentsCount)
         }
       })
       .catch(() => {})
@@ -414,6 +418,9 @@ export default function Home() {
           prev !== null
             ? prev + (data.biasesAndFallacies?.length || 0)
             : null
+        )
+        setArgumentsCount(prev =>
+          prev !== null ? prev + 1 : null
         )
       }
     } catch {
@@ -552,7 +559,7 @@ export default function Home() {
           </header>
 
           <section className="mb-8">
-            <InputTabs onAnalyze={handleAnalyze} isLoading={isLoading} assumptionsCount={assumptionsCount} />
+            <InputTabs onAnalyze={handleAnalyze} isLoading={isLoading} assumptionsCount={assumptionsCount} argumentsCount={argumentsCount} />
           </section>
 
           {error && (

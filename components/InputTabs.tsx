@@ -27,6 +27,7 @@ interface InputTabsProps {
   onAnalyze: (text: string, sourceType: Tab) => void
   isLoading: boolean
   assumptionsCount?: number | null
+  argumentsCount?: number | null
 }
 
 function countWords(text: string): number {
@@ -52,7 +53,7 @@ const EXAMPLE_CHIPS = [
   },
 ]
 
-export default function InputTabs({ onAnalyze, isLoading, assumptionsCount }: InputTabsProps) {
+export default function InputTabs({ onAnalyze, isLoading, assumptionsCount, argumentsCount }: InputTabsProps) {
   const [activeTab, setActiveTab] = useState<Tab>('text')
   const [textValue, setTextValue] = useState('')
   const [pdfFile, setPdfFile] = useState<File | null>(null)
@@ -417,31 +418,21 @@ export default function InputTabs({ onAnalyze, isLoading, assumptionsCount }: In
           </div>
         )}
 
-        {assumptionsCount !== null && assumptionsCount !== undefined && (
+        {(assumptionsCount !== null || argumentsCount !== null) && (
           <div style={{
             marginTop: '16px',
             paddingTop: '16px',
-            borderTop: '1px solid #2e2e2e',
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: '8px'
+            borderTop: '1px solid #2e2e2e'
           }}>
             <span style={{
-              fontSize: '1.1rem',
-              fontWeight: 700,
-              color: '#c8a84b',
-              fontFamily: 'monospace',
-              letterSpacing: '-0.02em'
-            }}>
-              {assumptionsCount.toLocaleString()}
-            </span>
-            <span style={{
-              fontSize: '0.75rem',
+              fontSize: '0.8rem',
               color: '#444440',
               letterSpacing: '0.04em',
               fontFamily: 'monospace'
             }}>
-              assumptions surfaced across all analyses
+              {(argumentsCount || 0).toLocaleString()} arguments examined
+              {' · '}
+              {(assumptionsCount || 0).toLocaleString()} assumptions surfaced
             </span>
           </div>
         )}

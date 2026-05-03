@@ -201,7 +201,10 @@ export async function POST(req: NextRequest) {
       fetch(process.env.SHEETS_URL || '', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ incrementAssumptions: detectedIssues.length })
+        body: JSON.stringify({
+            incrementAssumptions: detectedIssues.length,
+            incrementArguments: 1
+          })
       }).catch(() => {})
     }
 
