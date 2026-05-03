@@ -338,15 +338,15 @@ export default function Home() {
     setProgressDetail(wordCount > 0 ? `${wordCount.toLocaleString()} words loaded` : '')
 
     const stages = [
-      { target: 8,  label: 'Reading the text...',                detail: wordCount > 0 ? `${wordCount.toLocaleString()} words loaded` : 'Parsing input',                                           duration: 800  },
-      { target: 20, label: 'Scoring the reasoning...',           detail: 'Running FLOATER — 7 dimensions including Falsifiability, Logic, and Evidence',                                           duration: 1500 },
-      { target: 34, label: 'Finding the assumptions...',         detail: 'Surfacing what this argument treats as obviously true — the water it swims in',                                          duration: 2000 },
-      { target: 47, label: 'Checking for bias patterns...',      detail: 'Scanning against 40+ known cognitive biases and logical fallacies',                                                     duration: 2000 },
-      { target: 59, label: 'Surfacing the default narrative...', detail: 'What cultural story is this argument taking for granted?',                                                              duration: 2000 },
-      { target: 70, label: 'Detecting the incentive field...',   detail: 'Who benefits if this argument wins? What does the author gain from being right?',                                       duration: 2000 },
-      { target: 81, label: 'Building the questions...',          detail: "Generating the sharpest challenges to this argument's weakest points",                                                  duration: 2000 },
-      { target: 90, label: 'Gathering the books...',             detail: 'Finding what challenges or expands the framing — not more of what you already believe',                                 duration: 2000 },
-      { target: 97, label: 'Compiling results...',               detail: 'Putting it all together',                                                                                               duration: 3000 },
+      { target: 7,  label: 'Reading the text...',                detail: wordCount > 0 ? `${wordCount.toLocaleString()} words loaded` : 'Parsing input',                                           duration: 1000  },
+      { target: 16, label: 'Scoring the reasoning...',           detail: 'Running FLOATER — 7 dimensions including Falsifiability, Logic, and Evidence',                                           duration: 4000  },
+      { target: 27, label: 'Finding the assumptions...',         detail: 'Surfacing what this argument treats as obviously true — the water it swims in',                                          duration: 7000  },
+      { target: 36, label: 'Checking for bias patterns...',      detail: 'Scanning against 40+ known cognitive biases and logical fallacies',                                                     duration: 5000  },
+      { target: 46, label: 'Surfacing the default narrative...', detail: 'What cultural story is this argument taking for granted?',                                                              duration: 7000  },
+      { target: 55, label: 'Detecting the incentive field...',   detail: 'Who benefits if this argument wins? What does the author gain from being right?',                                       duration: 6000  },
+      { target: 63, label: 'Building the questions...',          detail: "Generating the sharpest challenges to this argument's weakest points",                                                  duration: 7000  },
+      { target: 70, label: 'Gathering the books...',             detail: 'Finding what challenges or expands the framing — not more of what you already believe',                                 duration: 7000  },
+      { target: 75, label: 'Finishing up...',                    detail: 'Almost there',                                                                                                          duration: 10000 },
     ]
 
     let currentStage = 0
