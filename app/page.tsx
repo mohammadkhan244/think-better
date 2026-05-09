@@ -345,12 +345,28 @@ function generateShareText(result: AnalysisResult): string {
   return lines.join('\n')
 }
 
+async function getTinyUrl(): Promise<string> {
+  try {
+    const url = typeof window !== 'undefined' ? window.location.origin : ''
+    const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`)
+    if (res.ok) return (await res.text()).trim()
+  } catch { /* fall through */ }
+  return typeof window !== 'undefined' ? window.location.origin : ''
+}
+
 function ShareButton({ result }: { result: AnalysisResult }) {
-  const [state, setState] = useState<'idle' | 'done'>('idle')
+  const [state, setState] = useState<'idle' | 'loading' | 'done'>('idle')
+  const [hovered, setHovered] = useState(false)
   const [canShare] = useState(() => typeof navigator !== 'undefined' && 'share' in navigator)
 
   const handle = async () => {
-    const text = generateShareText(result)
+    if (state !== 'idle') return
+    setState('loading')
+    const shortUrl = await getTinyUrl()
+    const text = generateShareText(result).replace(
+      typeof window !== 'undefined' ? window.location.origin : '',
+      shortUrl
+    )
     const title = 'The Reasoning Machine — Analysis'
     if (canShare) {
       try { await navigator.share({ title, text }) } catch { /* cancelled */ }
@@ -361,15 +377,23 @@ function ShareButton({ result }: { result: AnalysisResult }) {
     setTimeout(() => setState('idle'), 2000)
   }
 
+  const label = state === 'loading' ? '...' : state === 'done' ? 'done ✓' : canShare ? 'share ↗' : 'copy analysis'
+  const bg = hovered && state === 'idle' ? '#c8a84b' : 'transparent'
+  const color = state !== 'idle' ? '#c8a84b' : hovered ? '#0e0e0e' : '#c8a84b'
+
   return (
-    <button onClick={handle} style={{
-      padding: '5px 12px', background: 'transparent',
-      border: '1px solid #2e2e2e',
-      color: state === 'done' ? '#c8a84b' : '#666660',
-      fontSize: '0.75rem', cursor: 'pointer',
-      fontFamily: 'monospace', transition: 'color 0.15s', whiteSpace: 'nowrap'
-    }}>
-      {state === 'done' ? 'done ✓' : (canShare ? 'share ↗' : 'copy analysis')}
+    <button
+      onClick={handle}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        padding: '6px 16px', background: bg,
+        border: '1px solid #c8a84b', color,
+        fontSize: '0.75rem', cursor: 'pointer',
+        fontFamily: 'monospace', transition: 'all 0.15s ease', whiteSpace: 'nowrap'
+      }}
+    >
+      {label}
     </button>
   )
 }
@@ -410,9 +434,6 @@ export default function Home() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [activeTab, setActiveTab] = useState<TabId>('questions')
   const [originalText, setOriginalText] = useState('')
-  const [assumptionsCount, setAssumptionsCount] = useState<number | null>(null)
-  const [argumentsCount, setArgumentsCount] = useState<number | null>(null)
-
   // Progress state
   const [progress, setProgress] = useState(0)
   const [progressLabel, setProgressLabel] = useState('')
@@ -425,19 +446,6 @@ export default function Home() {
     }
   }, [progressInterval])
 
-  useEffect(() => {
-    fetch('/api/stats')
-      .then(r => r.json())
-      .then(d => {
-        if (typeof d.assumptionsCount === 'number') {
-          setAssumptionsCount(d.assumptionsCount)
-        }
-        if (typeof d.argumentsCount === 'number') {
-          setArgumentsCount(d.argumentsCount)
-        }
-      })
-      .catch(() => {})
-  }, [])
 
   // Training state
   const [trainingPattern, setTrainingPattern] = useState<string | null>(null)
@@ -531,14 +539,6 @@ export default function Home() {
       if (data.error) setError(data.error)
       else {
         setResult(data)
-        setAssumptionsCount(prev =>
-          prev !== null
-            ? prev + (data.biasesAndFallacies?.length || 0)
-            : null
-        )
-        setArgumentsCount(prev =>
-          prev !== null ? prev + 1 : null
-        )
       }
     } catch {
       clearInterval(interval)
@@ -676,7 +676,7 @@ export default function Home() {
           </header>
 
           <section className="mb-8">
-            <InputTabs onAnalyze={handleAnalyze} isLoading={isLoading} assumptionsCount={assumptionsCount} argumentsCount={argumentsCount} />
+            <InputTabs onAnalyze={handleAnalyze} isLoading={isLoading} />
           </section>
 
           {error && (

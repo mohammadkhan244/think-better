@@ -26,8 +26,6 @@ type Tab = 'text' | 'pdf' | 'youtube' | 'article'
 interface InputTabsProps {
   onAnalyze: (text: string, sourceType: Tab) => void
   isLoading: boolean
-  assumptionsCount?: number | null
-  argumentsCount?: number | null
 }
 
 function countWords(text: string): number {
@@ -53,7 +51,7 @@ const EXAMPLE_CHIPS = [
   },
 ]
 
-export default function InputTabs({ onAnalyze, isLoading, assumptionsCount, argumentsCount }: InputTabsProps) {
+export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
   const [activeTab, setActiveTab] = useState<Tab>('text')
   const [textValue, setTextValue] = useState('')
   const [pdfFile, setPdfFile] = useState<File | null>(null)
@@ -415,25 +413,6 @@ export default function InputTabs({ onAnalyze, isLoading, assumptionsCount, argu
                 {countWords(youtubeText)} words extracted from transcript
               </p>
             )}
-          </div>
-        )}
-
-        {(assumptionsCount !== null || argumentsCount !== null) && (
-          <div style={{
-            marginTop: '16px',
-            paddingTop: '16px',
-            borderTop: '1px solid #2e2e2e'
-          }}>
-            <span style={{
-              fontSize: '0.8rem',
-              color: '#444440',
-              letterSpacing: '0.04em',
-              fontFamily: 'monospace'
-            }}>
-              {(argumentsCount || 0).toLocaleString()} arguments examined
-              {' · '}
-              {(assumptionsCount || 0).toLocaleString()} assumptions surfaced
-            </span>
           </div>
         )}
 
