@@ -26,6 +26,7 @@ type Tab = 'text' | 'pdf' | 'youtube' | 'article'
 interface InputTabsProps {
   onAnalyze: (text: string, sourceType: Tab) => void
   isLoading: boolean
+  defaultText?: string
 }
 
 function countWords(text: string): number {
@@ -51,9 +52,9 @@ const EXAMPLE_CHIPS = [
   },
 ]
 
-export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
+export default function InputTabs({ onAnalyze, isLoading, defaultText }: InputTabsProps) {
   const [activeTab, setActiveTab] = useState<Tab>('text')
-  const [textValue, setTextValue] = useState('')
+  const [textValue, setTextValue] = useState(defaultText ?? '')
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [pdfText, setPdfText] = useState('')
   const [pdfLoading, setPdfLoading] = useState(false)
@@ -78,6 +79,10 @@ export default function InputTabs({ onAnalyze, isLoading }: InputTabsProps) {
       'webkitSpeechRecognition' in window
     )
   }, [])
+
+  useEffect(() => {
+    if (defaultText) setTextValue(defaultText)
+  }, [defaultText])
 
   const currentWordCount =
     activeTab === 'text' ? countWords(textValue)

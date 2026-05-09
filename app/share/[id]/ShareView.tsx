@@ -52,6 +52,24 @@ interface MultiResult {
 
 type AnalysisResult = SingleResult | MultiResult
 
+const domainConfig: Record<string, { label: string; explanation: string }> = {
+  theological: { label: 'Theological Argument', explanation: 'In theological arguments, low Falsifiability and Replicability scores are expected — these dimensions were designed for empirical claims. Focus on Logic, Objectivity, and Alternatives instead.' },
+  philosophical: { label: 'Philosophical Argument', explanation: 'Philosophical arguments are not empirically testable by design. Low Falsifiability and Replicability scores reflect the nature of the domain, not a flaw. Logic, Objectivity, and Alternative Explanations are the most meaningful dimensions here.' },
+  political: { label: 'Political Argument', explanation: 'Political arguments often involve value claims that cannot be falsified. Evidence and Objectivity are the most useful dimensions to examine. Watch for framing effects and selective use of data.' },
+  personal: { label: 'Personal or Anecdotal Argument', explanation: 'This text is primarily personal or experiential. FLOATER scores are most meaningful on structured arguments — Replicability and Evidence scores here reflect the absence of external sourcing, not the validity of the experience described.' },
+  business: { label: 'Business or Strategic Argument', explanation: 'Business arguments often involve predictions under uncertainty. Evidence and Tentative Conclusions are the most useful dimensions. Watch for survivorship bias and overconfident projections.' },
+  cultural: { label: 'Cultural & Social Argument', explanation: 'This argument operates as cultural or social criticism. Falsifiability and Replicability scores are less meaningful here — focus on Logic, Objectivity, and whether the argument seriously considers alternative explanations for the patterns it identifies.' },
+  fiction: { label: 'Creative Writing', explanation: 'This appears to be creative or fictional writing. FLOATER scores, bias detection, and belief system extraction are not designed for fiction. The questions treat the narrative structure as the subject.' },
+}
+
+function getWhatThisMeans(overall: number, issueCount: number): string {
+  if (overall < 4)
+    return `This reasoning contains ${issueCount > 0 ? `${issueCount} structural pattern${issueCount !== 1 ? 's' : ''}` : 'several areas'} where conclusions depend on untested assumptions. The questions below will sharpen any decision built on top of it.`
+  if (overall < 7)
+    return `This reasoning has real structure, but some of the load-bearing claims rest on assumptions worth examining. The questions below help stress-test them.`
+  return `The reasoning shows relatively strong structure. A few targeted questions could make it more robust.`
+}
+
 function getSignalLabel(score: number): string {
   if (score >= 9.1) return 'Clear signals'
   if (score >= 7.1) return 'Strong signals'
@@ -323,6 +341,8 @@ export default function ShareView({ result: raw, originalText }: { result: unkno
 function SingleView({ result }: { result: SingleResult }) {
   const terrain = getTerrainLabel(result.floater.overall)
   const pc = result.biasesAndFallacies.length
+  const domain = result.domain?.domain
+  const domainInfo = domain && domain !== 'general' && domain !== 'empirical' ? domainConfig[domain] : null
 
   return (
     <div>
@@ -334,6 +354,24 @@ function SingleView({ result }: { result: SingleResult }) {
         <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#666660', textAlign: 'right' }}>
           {result.floater.overall}/10 · {pc} pattern{pc !== 1 ? 's' : ''} detected
         </div>
+      </div>
+
+      {domainInfo && (
+        <div style={{ borderLeft: '3px solid #c8a84b', padding: '14px 16px', marginBottom: '24px', background: 'rgba(200, 168, 75, 0.06)' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c8a84b', marginBottom: '6px', fontWeight: 600 }}>
+            {domainInfo.label}
+          </div>
+          <p style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#666660', lineHeight: '1.6', margin: 0 }}>
+            {domainInfo.explanation}
+          </p>
+        </div>
+      )}
+
+      <div style={{ border: '1px solid #2e2e2e', padding: '16px', marginBottom: '32px' }}>
+        <p style={{ fontFamily: 'monospace', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#444440', marginBottom: '8px', marginTop: 0 }}>What This Means</p>
+        <p style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', lineHeight: '1.6', margin: 0 }}>
+          {getWhatThisMeans(result.floater.overall, pc)}
+        </p>
       </div>
 
       <section style={{ marginBottom: '40px' }}>

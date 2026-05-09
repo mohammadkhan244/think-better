@@ -425,6 +425,7 @@ export default function Home() {
     const prefill = sessionStorage.getItem('rm_prefill')
     if (prefill) {
       sessionStorage.removeItem('rm_prefill')
+      setPrefillText(prefill)
       handleAnalyze(prefill, 'text')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -442,6 +443,7 @@ export default function Home() {
   const [narrativeTraining, setNarrativeTraining] = useState<TrainingScenario | null>(null)
   const [narrativeTrainingLoading, setNarrativeTrainingLoading] = useState(false)
   const [showAllImprovements, setShowAllImprovements] = useState(false)
+  const [prefillText, setPrefillText] = useState('')
 
   const toggleExpanded = (key: string) =>
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
@@ -662,7 +664,7 @@ export default function Home() {
           </header>
 
           <section className="mb-8">
-            <InputTabs onAnalyze={handleAnalyze} isLoading={isLoading} />
+            <InputTabs onAnalyze={handleAnalyze} isLoading={isLoading} defaultText={prefillText} />
           </section>
 
           {error && (
