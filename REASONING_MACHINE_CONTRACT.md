@@ -1,0 +1,411 @@
+The Reasoning Machine — System Contract
+
+This document defines the invariant structure of the Reasoning Machine.
+It is the highest-level specification in the system.
+All implementation, prompts, UI decisions, and detection logic must 
+conform to this contract.
+If a proposed change cannot be mapped to one of the five primitives, 
+it does not belong in the Reasoning Machine.
+
+---
+
+## 1. WHAT THE REASONING MACHINE IS
+
+The Reasoning Machine is a structural reasoning analysis system.
+
+It allows a user to:
+- Submit any argument, article, claim, PDF, or transcript
+- Receive a deterministic analysis of the reasoning structure inside it
+- Surface hidden assumptions, cognitive patterns, and cultural narratives
+- Generate Socratic questions that expose gaps without declaring truth
+- Train pattern recognition on the structures found
+
+The Reasoning Machine is fundamentally about:
+
+> Making the structure of an argument visible before a decision locks in.
+
+It is not a fact-checker. It is not a debate judge.
+It is a system for seeing what an argument is built on —
+before you accept it, repeat it, or act on it.
+
+---
+
+## 2. WHAT THE REASONING MACHINE IS NOT
+
+The Reasoning Machine is explicitly NOT:
+
+- A fact-checker or truth arbiter
+- A debate scoring system
+- A persuasion tool or argument generator
+- A grammar checker or writing editor
+- A political bias detector
+- A misinformation classifier
+- A replacement for human judgment
+- A tool that tells you what to think
+
+The Reasoning Machine does NOT optimize for:
+
+- Declaring winners or losers in arguments
+- Confirming or denying claims
+- Scoring users on reasoning quality
+- Producing consistent LLM-generated grades
+- Making users feel judged, evaluated, or graded
+
+The Reasoning Machine does NOT attempt to:
+
+- Determine whether a claim is true or false
+- Rank arguments against each other globally
+- Produce different scores for the same input on repeated runs
+- Generate shame or defensiveness in the user
+
+---
+
+## 3. THE FIVE IMMUTABLE PRIMITIVES
+
+The entire system is built on five primitives.
+These must never be removed or redefined.
+
+### Primitive 1 — Input
+
+Any text submitted for analysis.
+
+Includes:
+- Raw text (pasted argument, claim, or article)
+- PDF (text extracted server-side)
+- Article URL (text fetched server-side)
+- YouTube URL (transcript extracted server-side)
+
+Input is the root of all computation.
+No system output is valid without a submitted Input.
+Input is never modified, summarized, or interpreted before scoring.
+The deterministic pipeline receives Input exactly as submitted.
+
+### Primitive 2 — Signal
+
+A detected structural reasoning pattern inside the Input.
+
+Includes:
+- name (e.g. "Survivorship Bias", "False Dichotomy")
+- type ("fallacy" | "bias")
+- definition (one sentence, domain-agnostic)
+- matchedText (exact phrase that triggered detection)
+- confidence ("Strong signal" | "Possible signal" | "Weak signal")
+- floaterDimension (which FLOATER axis this affects)
+
+Signals are detected deterministically — regex and NLP pattern 
+matching only. No LLM involvement in Signal detection.
+Same Input always produces identical Signals.
+Signals are never invented, inferred, or hallucinated.
+If no trigger pattern matches, no Signal is returned.
+The system currently encodes 57 Signal detectors across 
+fallacies and cognitive biases.
+
+### Primitive 3 — Dimension
+
+One of seven axes used to score the reasoning structure of an Input.
+
+The seven Dimensions are fixed and permanent:
+- **F** — Falsifiability: Can the claim be tested or disproven?
+- **L** — Logic: Do conclusions follow from premises?
+- **O** — Objectivity: Is contradictory evidence acknowledged?
+- **A** — Alternative Explanations: Are competing hypotheses considered?
+- **T** — Tentative Conclusions: Are claims proportionate to evidence?
+- **E** — Evidence: Is evidence cited, relevant, and sufficient?
+- **R** — Replicability: Could others verify this independently?
+
+Each Dimension is scored 0–10 by pure function — 
+regex signal counting and NLP pattern matching only.
+No LLM involvement in Dimension scoring.
+Same Input always produces identical Dimension scores.
+Dimension scores are never presented as grades.
+They are presented as signal labels:
+  0–3  → "Limited signals detected"
+  4–5  → "Partial signals"
+  6–7  → "Moderate signals"
+  8–9  → "Strong signals"
+  10   → "Clear signals"
+
+The weighted overall score maps to a Reasoning Breakdown label:
+  0–3   → "Fragile"
+  3.1–5 → "Mixed"
+  5.1–7 → "Moderate"
+  7.1–9 → "Solid"
+  9.1+  → "Strong"
+
+### Primitive 4 — Narrative
+
+The cultural or institutional story the argument is 
+swimming inside — never examined because it reads as reality.
+
+Includes:
+- narrative (one sentence naming the myth)
+- loadBearing (what would have to be false for it to collapse)
+- whoBenefits (institutional or cultural actors served by its invisibility)
+- ifItBreaksUpside (what becomes possible)
+- ifItBreaksDownside (what gets destabilized)
+
+Narrative is generated by LLM — Claude Sonnet, temperature 0.
+It targets the single deepest cultural assumption, not individual beliefs.
+Individual beliefs are extracted separately in the Belief System block.
+Narrative names what the author would never think to question —
+not because they are wrong, but because it reads as background reality.
+Narrative must feel older and larger than the argument itself.
+
+### Primitive 5 — Question
+
+A Socratic probe generated from the analysis of a specific Input.
+
+Questions are generated by LLM — Claude Sonnet, temperature 0.7.
+They are the only intentionally non-deterministic output.
+Questions must be specific to the actual topic and claims in the Input.
+Generic questions ("have you considered the evidence?") are invalid.
+Questions never declare claims true or false.
+Questions are organized into three permanent groups:
+
+- **Questions that will come for this argument** — adversarial, 
+  what a critic will use
+- **Where to press, in order** — prosecutorial, sequenced by leverage
+- **Outside the frame** — what the argument never thought to address
+
+---
+
+## 4. THE DETERMINISM PRINCIPLE
+
+The Reasoning Machine enforces a strict two-pipeline architecture:
+
+### Pipeline 1 — Deterministic (no LLM)
+- FLOATER Dimension scoring
+- Signal detection (bias and fallacy)
+- Domain classification keyword matching
+- Summary paragraph construction
+- Cache key generation
+
+Same Input → identical Pipeline 1 output. Always.
+No variance. No probabilistic behavior. No temperature.
+
+### Pipeline 2 — Generative (LLM)
+- Belief System extraction
+- Default Narrative extraction
+- Agency block generation
+- Question generation (three groups)
+- Go Deeper book recommendations
+- Domain classification (semantic)
+- Training scenario generation
+
+Pipeline 2 runs in parallel after Pipeline 1 completes.
+Pipeline 2 outputs are cached by SHA-256 hash of Input.
+Same Input → same cached Pipeline 2 output after first run.
+Pipeline 2 never influences Pipeline 1 scores.
+
+This separation is permanent and non-negotiable.
+The determinism of scoring is the system's core integrity guarantee.
+Users must never be able to improve their score by resubmitting.
+
+---
+
+## 5. THE DOMAIN AWARENESS PRINCIPLE
+
+The system classifies every Input into one of eight domains:
+
+  empirical | philosophical | theological | political |
+  cultural | business | personal | fiction | general
+
+Domain classification is used to:
+- Show contextual disclaimers when FLOATER scores would mislead
+- Suppress irrelevant sections for fiction inputs
+- Inform the Narrative and Question generators
+
+Domain never affects Dimension scores.
+Domain never penalizes or rewards any type of reasoning.
+Domain is descriptive, not evaluative.
+
+When domain is fiction:
+- Bias/fallacy section is hidden
+- Belief System is hidden
+- Default Narrative is hidden
+- Agency block is hidden
+- Go Deeper is hidden
+- Questions are reframed as narrative craft questions
+
+---
+
+## 6. THE TRAINING PRINCIPLE
+
+Training Mode teaches pattern recognition — not reasoning correctness.
+
+Training:
+- Appears only after analysis completes
+- Attaches to detected Signals, Belief System, and Default Narrative
+- Presents a scenario from a different domain than the analyzed Input
+- Asks one open question — no right or wrong answer
+- Reveals the pattern name, definition, and where it appears broadly
+- Never scores the user
+- Never tracks performance
+- Never gamifies
+
+Training is pattern recognition practice, not evaluation.
+The user should feel sharper, not graded.
+
+---
+
+## 7. THE LANGUAGE PRINCIPLE
+
+The Reasoning Machine never accuses. It surfaces.
+
+Permanent language rules:
+
+| Never use | Always use instead |
+|---|---|
+| "You are wrong" | "This argument may rely on..." |
+| "Fallacy detected" | "Pattern possibly present" |
+| "Your score is X/10" | "Reasoning Breakdown — Mixed" |
+| "Issues found" | "Reasoning patterns detected" |
+| "Logic breaks down" | "Where this could be strengthened" |
+| "Proves" | "Suggests" / "Indicates" |
+
+The user should feel:
+> "I wasn't judged. I discovered something."
+
+---
+
+## 8. WHAT CAN NEVER CHANGE
+
+### 8.1 Deterministic Scoring Invariance
+Pipeline 1 must always be LLM-free.
+FLOATER scores and Signal detection must always be 
+regex and NLP pattern matching only.
+Same Input must always produce identical scores.
+
+### 8.2 Truth Neutrality
+The system must never declare a claim true or false.
+This applies to all outputs: scores, signals, narratives, 
+questions, training scenarios, and book recommendations.
+
+### 8.3 Question Specificity
+Questions must always be specific to the actual topic 
+and claims in the Input.
+Generic questions are a system failure, not an acceptable fallback.
+
+### 8.4 Training Non-Evaluation
+Training Mode must never score, rank, or evaluate the user's response.
+No correct answers. No XP. No streaks. No performance tracking.
+
+### 8.5 Pipeline Separation
+Pipeline 2 must never influence Pipeline 1 outputs.
+Generative outputs must never be presented as deterministic scores.
+
+### 8.6 Signal Integrity
+Signals must never be invented, inferred, or hallucinated.
+A Signal only exists if a trigger pattern matched the Input text.
+Confidence levels must reflect trigger match count, not LLM inference.
+
+### 8.7 Narrative Depth
+The Default Narrative must always name a cultural or institutional story —
+never the individual's personal beliefs.
+Personal beliefs are the domain of the Belief System block.
+The Narrative must feel older and larger than the argument itself.
+
+### 8.8 Domain Non-Penalization
+Domain classification must never change Dimension scores.
+A theological argument scoring low on Falsifiability is not 
+a weaker argument — it is a different type of argument.
+The domain disclaimer exists to provide context, not judgment.
+
+---
+
+## 9. REASONING_STATE — CANONICAL STATE OBJECT
+
+All system state must be derivable from REASONING_STATE.
+
+```typescript
+REASONING_STATE = {
+  input: {
+    text: string,           // raw text after extraction
+    inputType: 'text' | 'pdf' | 'article' | 'youtube',
+    wordCount: number,
+    cacheKey: string        // SHA-256 of text + version string
+  },
+  pipeline1: {
+    floater: {
+      scores: Record<'F'|'L'|'O'|'A'|'T'|'E'|'R', {
+        score: number,
+        justification: string
+      }>,
+      overall: number,
+      breakdownLabel: string  // Fragile|Mixed|Moderate|Solid|Strong
+    },
+    signals: Signal[],        // detected bias and fallacy patterns
+    domain: {
+      domain: string,
+      confidence: string,
+      disclaimer: string | null
+    },
+    summary: string
+  },
+  pipeline2: {
+    beliefSystem: {
+      coreAssumptions: string[],
+      loadBearingBeliefs: string[],
+      incentiveSystem: string,
+      speakerComparison: SpeakerBelief[] | null
+    },
+    defaultNarrative: {
+      narrative: string,
+      loadBearing: string,
+      whoBenefits: string,
+      ifItBreaksUpside: string,
+      ifItBreaksDownside: string
+    },
+    agency: {
+      framing: string,
+      bullets: string[]
+    },
+    questions: {
+      defend: string[],
+      challenge: string[],
+      missing: string[]
+    },
+    resources: {
+      books: Book[]
+    }
+  },
+  fromCache: boolean,
+  cacheStatus: 'hit' | 'miss' | 'bypassed'
+}
+
+
+10. SYSTEM BOUNDARIES
+What runs on the server (never client-side)
+FLOATER scoring
+Signal detection
+PDF text extraction
+YouTube transcript extraction
+All LLM calls
+Cache reads and writes
+Google Sheets counter increments
+What runs on the client (never server-side)
+Tab navigation state
+Training card open/closed state
+Voice-to-text recording
+Progress bar animation
+Optimistic counter updates
+What is cached
+Full REASONING_STATE by SHA-256 input hash
+TTL: 1 hour in-memory
+Cache key includes version string (::v6)
+Different inputs always produce fresh analysis
+Same input always returns cached result after first run
+
+11. THE CLOSED LOOP
+The Reasoning Machine guarantees this feedback loop is never broken:
+Input → Signal Detection → Dimension Scoring → Narrative Extraction
+→ Question Generation → Training → Sharper Input Next Time
+
+The user submits an argument. The system surfaces its structure. The questions expose its gaps. Training builds the skill to see those gaps independently. The user returns with a better-formed argument or a sharper question.
+
+12. FINAL PRINCIPLE
+The Reasoning Machine is not a tool for proving people wrong.
+It is a tool for making the structure of thought visible before conviction hardens into decision.
+All design, implementation, and evolution must preserve that distinction.
+"Not what to think — how to think."
+
