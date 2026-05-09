@@ -257,16 +257,7 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-async function getTinyUrl(): Promise<string> {
-  try {
-    const url = typeof window !== 'undefined' ? window.location.origin : ''
-    const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`)
-    if (res.ok) return (await res.text()).trim()
-  } catch { /* fall through */ }
-  return typeof window !== 'undefined' ? window.location.origin : ''
-}
-
-function ShareButton() {
+function ShareButton({ result }: { result: AnalysisResult }) {
   const [state, setState] = useState<'idle' | 'loading' | 'done'>('idle')
   const [hovered, setHovered] = useState(false)
   const [doneLabel, setDoneLabel] = useState('link copied')
@@ -275,14 +266,24 @@ function ShareButton() {
   const handle = async () => {
     if (state !== 'idle') return
     setState('loading')
-    const shortUrl = await getTinyUrl()
-    if (canShare) {
-      try {
-        await navigator.share({ url: shortUrl, title: 'The Reasoning Machine' })
-        setDoneLabel('shared ✓')
-      } catch { /* cancelled */ }
-    } else {
-      await navigator.clipboard.writeText(shortUrl)
+    try {
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ result }),
+      })
+      const { url } = await res.json()
+      if (canShare) {
+        try {
+          await navigator.share({ url, title: 'The Reasoning Machine — Analysis' })
+          setDoneLabel('shared ✓')
+        } catch { /* cancelled */ }
+      } else {
+        await navigator.clipboard.writeText(url)
+        setDoneLabel('link copied')
+      }
+    } catch {
+      await navigator.clipboard.writeText(window.location.origin)
       setDoneLabel('link copied')
     }
     setState('done')
@@ -631,7 +632,7 @@ export default function Home() {
                   {single.fromCache && (
                     <span style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: '#444440' }}>⚡ cached</span>
                   )}
-                  <ShareButton />
+                  <ShareButton result={single} />
                 </div>
               </div>
             </div>
@@ -680,7 +681,7 @@ export default function Home() {
                   {multi.fromCache && (
                     <span className="text-xs font-mono text-[#444440] border border-[#2e2e2e] px-1.5 py-0.5">⚡ cached</span>
                   )}
-                  <ShareButton />
+                  <ShareButton result={multi} />
                 </div>
               </div>
               <SpeakerResults speakers={multi.speakers} diarizationMethod={multi.diarizationMethod} />
