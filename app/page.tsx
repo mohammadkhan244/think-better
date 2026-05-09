@@ -257,6 +257,123 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
+function generateShareText(result: AnalysisResult): string {
+  const lines: string[] = []
+  lines.push('THE REASONING MACHINE')
+  lines.push('─────────────────────')
+  lines.push('')
+
+  if (result.mode === 'single') {
+    const terrain = getTerrainLabel(result.floater.overall)
+    const pc = result.biasesAndFallacies.length
+
+    if (result.domain?.domain && result.domain.domain !== 'general' && result.domain.domain !== 'empirical') {
+      const lbl = domainConfig[result.domain.domain]?.label
+      if (lbl) { lines.push(lbl.toUpperCase()); lines.push('') }
+    }
+
+    lines.push(`SCORE: ${result.floater.overall}/10 (${terrain}) · ${pc} pattern${pc !== 1 ? 's' : ''} detected`)
+    lines.push('')
+
+    lines.push('FLOATER SCORECARD')
+    const fnames: Record<string, string> = { F: 'Falsifiability', L: 'Logic', O: 'Objectivity', A: 'Alternatives', T: 'Tentativeness', E: 'Evidence', R: 'Replicability' }
+    for (const k of ['F','L','O','A','T','E','R']) {
+      const s = result.floater.scores[k]?.score
+      if (s !== undefined) lines.push(`${k}  ${fnames[k].padEnd(16)} ${s}/10`)
+    }
+    lines.push('')
+
+    if (result.biasesAndFallacies.length > 0) {
+      lines.push('REASONING PATTERNS DETECTED')
+      for (const i of result.biasesAndFallacies)
+        lines.push(`· ${i.name} — "${i.matchedText}"`)
+      lines.push('')
+    }
+
+    if (result.beliefSystem?.coreAssumptions.length) {
+      lines.push('OPERATING BELIEF SYSTEM')
+      lines.push('Core Assumptions:')
+      for (const a of result.beliefSystem.coreAssumptions) lines.push(`· ${a}`)
+      lines.push('')
+      if (result.beliefSystem.loadBearingBeliefs.length) {
+        lines.push('If These Were False, The Argument Collapses:')
+        for (const b of result.beliefSystem.loadBearingBeliefs) lines.push(`→ ${b}`)
+        lines.push('')
+      }
+      if (result.beliefSystem.incentiveSystem) {
+        lines.push(`Incentive System: ${result.beliefSystem.incentiveSystem}`)
+        lines.push('')
+      }
+    }
+
+    if (result.defaultNarrative?.narrative) {
+      lines.push('DEFAULT NARRATIVE')
+      lines.push(`"${result.defaultNarrative.narrative}"`)
+      lines.push('')
+    }
+
+    const allQ = [...(result.followUpQuestions.defend ?? []), ...(result.followUpQuestions.challenge ?? []), ...(result.followUpQuestions.missing ?? [])]
+    if (allQ.length) {
+      lines.push('QUESTIONS THAT PRESSURE-TEST THIS ARGUMENT')
+      allQ.forEach((q, i) => lines.push(`${i + 1}. ${q}`))
+      lines.push('')
+    }
+  } else {
+    lines.push(`CONVERSATION ANALYSIS — ${result.speakers.length} speakers`)
+    lines.push('')
+    for (const sp of result.speakers) {
+      lines.push(`── ${sp.speaker} ──`)
+      lines.push(`Score: ${sp.floater.overall}/10 (${getTerrainLabel(sp.floater.overall)})`)
+      if (sp.biasesAndFallacies.length) lines.push(`Patterns: ${sp.biasesAndFallacies.map(i => i.name).join(', ')}`)
+      lines.push('')
+    }
+    if (result.beliefSystem?.coreAssumptions.length) {
+      lines.push('SHARED BELIEF SYSTEM')
+      for (const a of result.beliefSystem.coreAssumptions) lines.push(`· ${a}`)
+      lines.push('')
+    }
+    if (result.defaultNarrative?.narrative) {
+      lines.push('DEFAULT NARRATIVE')
+      lines.push(`"${result.defaultNarrative.narrative}"`)
+      lines.push('')
+    }
+  }
+
+  lines.push('─────────────────────')
+  lines.push('Analyzed with The Reasoning Machine')
+  lines.push(typeof window !== 'undefined' ? window.location.origin : '')
+  return lines.join('\n')
+}
+
+function ShareButton({ result }: { result: AnalysisResult }) {
+  const [state, setState] = useState<'idle' | 'done'>('idle')
+
+  const handle = async () => {
+    const text = generateShareText(result)
+    const title = 'The Reasoning Machine — Analysis'
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try { await navigator.share({ title, text }) } catch { /* cancelled */ }
+      setState('done')
+    } else {
+      await navigator.clipboard.writeText(text)
+      setState('done')
+    }
+    setTimeout(() => setState('idle'), 2000)
+  }
+
+  return (
+    <button onClick={handle} style={{
+      padding: '5px 12px', background: 'transparent',
+      border: '1px solid #2e2e2e',
+      color: state === 'done' ? '#c8a84b' : '#666660',
+      fontSize: '0.75rem', cursor: 'pointer',
+      fontFamily: 'monospace', transition: 'color 0.15s', whiteSpace: 'nowrap'
+    }}>
+      {state === 'done' ? 'done ✓' : (typeof navigator !== 'undefined' && navigator.share ? 'share ↗' : 'copy analysis')}
+    </button>
+  )
+}
+
 function QuestionGroup({ title, subhead, questions, startIndex, isLast }: {
   title: string; subhead: string; questions: string[]; startIndex: number; isLast?: boolean
 }) {
@@ -589,18 +706,21 @@ export default function Home() {
                   {terrainLabel}
                 </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
                 <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#666660' }}>
                   {patternCount} pattern{patternCount !== 1 ? 's' : ''} detected
                 </div>
                 {domainDisplay && (
-                  <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: '#444440', marginTop: '2px' }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: '#444440' }}>
                     {domainDisplay}
                   </div>
                 )}
-                {single.fromCache && (
-                  <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: '#444440', marginTop: '2px' }}>⚡ cached</div>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {single.fromCache && (
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: '#444440' }}>⚡ cached</span>
+                  )}
+                  <ShareButton result={single} />
+                </div>
               </div>
             </div>
           )}
@@ -644,9 +764,12 @@ export default function Home() {
                 <h2 className="font-mono text-xs text-[#c8a84b] tracking-widest uppercase">
                   Speaker Analysis — {multi.speakers.length} speakers detected
                 </h2>
-                {multi.fromCache && (
-                  <span className="text-xs font-mono text-[#444440] border border-[#2e2e2e] px-1.5 py-0.5">⚡ cached</span>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {multi.fromCache && (
+                    <span className="text-xs font-mono text-[#444440] border border-[#2e2e2e] px-1.5 py-0.5">⚡ cached</span>
+                  )}
+                  <ShareButton result={multi} />
+                </div>
               </div>
               <SpeakerResults speakers={multi.speakers} diarizationMethod={multi.diarizationMethod} />
 
