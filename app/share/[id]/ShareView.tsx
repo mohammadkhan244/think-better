@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import BiasCard from '@/components/BiasCard'
 
@@ -50,6 +51,73 @@ interface MultiResult {
 }
 
 type AnalysisResult = SingleResult | MultiResult
+
+function getSignalLabel(score: number): string {
+  if (score >= 9.1) return 'Clear signals'
+  if (score >= 7.1) return 'Strong signals'
+  if (score >= 5.1) return 'Moderate signals'
+  if (score >= 3.1) return 'Partial signals'
+  return 'Limited signals detected'
+}
+
+function InputToggle({ text }: { text: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid #2e2e2e' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ background: 'transparent', border: '1px solid #2e2e2e', color: '#666660', fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'monospace', padding: '6px 14px' }}
+      >
+        {open ? '↑ Hide original input' : '↓ Show original input'}
+      </button>
+      {open && (
+        <div style={{ marginTop: '12px', maxHeight: '300px', overflowY: 'auto', padding: '14px', background: '#141414', border: '1px solid #2e2e2e' }}>
+          <pre style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#a8a89a', lineHeight: '1.6', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {text}
+          </pre>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FloaterExpandable({ scores }: { scores: Record<string, { score: number; justification: string }> }) {
+  const [open, setOpen] = useState<Record<string, boolean>>({})
+  const toggle = (key: string) => setOpen(prev => ({ ...prev, [key]: !prev[key] }))
+  const dimNames: Record<string, string> = { F: 'Falsifiability', L: 'Logic', O: 'Objectivity', A: 'Alternative Explanations', T: 'Tentative Conclusions', E: 'Evidence', R: 'Replicability' }
+  return (
+    <div style={{ marginTop: '16px' }}>
+      {Object.entries(scores).map(([key, data]) => {
+        const signal = getSignalLabel(data.score)
+        const isOpen = open[key]
+        return (
+          <div key={key} style={{ borderBottom: '1px solid #2e2e2e', padding: '12px 0' }}>
+            <div
+              onClick={() => toggle(key)}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#c8a84b', fontSize: '0.9rem' }}>{key}</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#e8e8e0' }}>{dimNames[key] ?? key}</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#666660', fontStyle: 'italic' }}>— {signal}</span>
+              </div>
+              <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: '#c8a84b', whiteSpace: 'nowrap', marginLeft: '12px' }}>
+                {isOpen ? 'hide ↑' : 'what does this mean? ↓'}
+              </span>
+            </div>
+            {isOpen && (
+              <div style={{ marginTop: '10px', borderLeft: '3px solid #c8a84b', paddingLeft: '12px' }}>
+                <p style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.6', margin: 0 }}>
+                  {data.justification}
+                </p>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 function getTerrainLabel(overall: number): string {
   if (overall >= 9.1) return 'Strong'
@@ -206,7 +274,7 @@ function BooksSection({ books }: { books: BookEntry[] }) {
   )
 }
 
-export default function ShareView({ result: raw }: { result: unknown }) {
+export default function ShareView({ result: raw, originalText }: { result: unknown; originalText?: string }) {
   const result = raw as AnalysisResult
 
   return (
@@ -222,18 +290,30 @@ export default function ShareView({ result: raw }: { result: unknown }) {
           </p>
         </header>
 
+        {originalText && <InputToggle text={originalText} />}
+
         {result.mode === 'single' ? <SingleView result={result} /> : <MultiView result={result} />}
 
-        <div style={{ marginTop: '48px', paddingTop: '32px', borderTop: '1px solid #2e2e2e', textAlign: 'center' }}>
-          <p style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', marginBottom: '16px', marginTop: 0 }}>
-            Analyze your own argument, article, or transcript
-          </p>
-          <a
-            href="/"
-            style={{ display: 'inline-block', padding: '10px 24px', border: '1px solid #c8a84b', color: '#c8a84b', background: 'transparent', textDecoration: 'none', fontFamily: 'monospace', fontSize: '0.85rem', letterSpacing: '0.04em' }}
-          >
-            Try The Reasoning Machine →
-          </a>
+        <div style={{ marginTop: '48px', paddingTop: '32px', borderTop: '1px solid #2e2e2e' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'stretch', maxWidth: '360px', margin: '0 auto' }}>
+            {originalText && (
+              <button
+                onClick={() => {
+                  sessionStorage.setItem('rm_prefill', originalText)
+                  window.location.href = '/'
+                }}
+                style={{ display: 'block', width: '100%', padding: '12px 24px', border: '1px solid #c8a84b', color: '#c8a84b', background: 'transparent', textDecoration: 'none', fontFamily: 'monospace', fontSize: '0.85rem', letterSpacing: '0.04em', cursor: 'pointer', textAlign: 'center' }}
+              >
+                Dig deeper into this argument →
+              </button>
+            )}
+            <a
+              href="/"
+              style={{ display: 'block', padding: '12px 24px', border: '1px solid #2e2e2e', color: '#666660', background: 'transparent', textDecoration: 'none', fontFamily: 'monospace', fontSize: '0.85rem', letterSpacing: '0.04em', textAlign: 'center' }}
+            >
+              Analyze your own argument →
+            </a>
+          </div>
         </div>
       </div>
     </main>
@@ -259,6 +339,7 @@ function SingleView({ result }: { result: SingleResult }) {
       <section style={{ marginBottom: '40px' }}>
         <SectionHeading>FLOATER Scorecard</SectionHeading>
         <FloaterChart scores={result.floater.scores} />
+        <FloaterExpandable scores={result.floater.scores} />
       </section>
 
       {pc > 0 && (

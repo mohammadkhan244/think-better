@@ -257,7 +257,69 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-function ShareButton({ result }: { result: AnalysisResult }) {
+function ImprovementCard({ imp }: { imp: Improvement }) {
+  const [lookUpOpen, setLookUpOpen] = useState(false)
+  const label = imp.dimensionLabel
+    ? `${imp.dimension} — ${imp.dimensionLabel}`
+    : imp.issueLabel ?? 'Gap'
+  return (
+    <div style={{ borderLeft: '3px solid #c8a84b', paddingLeft: '16px', marginBottom: '24px' }}>
+      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c8a84b', marginBottom: '8px' }}>
+        {label}
+      </div>
+      {imp.specificAdvice ? (
+        <p style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: '#e8e8e0', lineHeight: '1.6', margin: '0 0 10px 0' }}>{imp.specificAdvice}</p>
+      ) : (
+        <p style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: '#e8e8e0', lineHeight: '1.6', margin: '0 0 10px 0' }}>{imp.gap}</p>
+      )}
+      {imp.textEvidence && (
+        <div style={{ marginBottom: '10px', padding: '8px 12px', background: '#141414', borderLeft: '2px solid #2e2e2e' }}>
+          <p style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#a8a89a', fontStyle: 'italic', lineHeight: '1.5', margin: '0 0 4px 0' }}>
+            &ldquo;{imp.textEvidence}&rdquo;
+          </p>
+          <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: '#666660', margin: 0 }}>from the submitted text</p>
+        </div>
+      )}
+      {imp.nextStep && (
+        <div style={{ marginBottom: '10px', padding: '8px 12px', background: 'rgba(200, 168, 75, 0.04)', border: '1px solid rgba(200, 168, 75, 0.15)' }}>
+          <p style={{ fontFamily: 'monospace', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c8a84b', margin: '0 0 4px 0' }}>Next step</p>
+          <p style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.5', margin: 0 }}>{imp.nextStep}</p>
+        </div>
+      )}
+      {imp.contraryResource && (
+        <p style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#666660', lineHeight: '1.5', margin: '0 0 8px 0' }}>
+          Read: {imp.contraryResource}
+        </p>
+      )}
+      {(imp.lookUp?.length > 0 || imp.perspective) && (
+        <button
+          onClick={() => setLookUpOpen(o => !o)}
+          style={{ background: 'transparent', border: 'none', color: '#444440', fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'monospace', padding: 0 }}
+        >
+          {lookUpOpen ? '↑ less' : '↓ more'}
+        </button>
+      )}
+      {lookUpOpen && (
+        <div style={{ marginTop: '8px' }}>
+          {imp.perspective && (
+            <p style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#666660', fontStyle: 'italic', lineHeight: '1.6', margin: '0 0 8px 0' }}>{imp.perspective}</p>
+          )}
+          {imp.lookUp?.length > 0 && (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {imp.lookUp.map((item, i) => (
+                <li key={i} style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#666660' }}>
+                  <span style={{ color: '#444440', marginRight: '6px' }}>·</span>{item}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ShareButton({ result, originalText }: { result: AnalysisResult; originalText: string }) {
   const [state, setState] = useState<'idle' | 'loading' | 'done'>('idle')
   const [hovered, setHovered] = useState(false)
   const [doneLabel, setDoneLabel] = useState('link copied')
@@ -270,7 +332,7 @@ function ShareButton({ result }: { result: AnalysisResult }) {
       const res = await fetch('/api/share', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ result }),
+        body: JSON.stringify({ result, originalText }),
       })
       const { url } = await res.json()
       if (canShare) {
@@ -359,6 +421,15 @@ export default function Home() {
     }
   }, [progressInterval])
 
+  useEffect(() => {
+    const prefill = sessionStorage.getItem('rm_prefill')
+    if (prefill) {
+      sessionStorage.removeItem('rm_prefill')
+      handleAnalyze(prefill, 'text')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
 
   // Training state
   const [trainingPattern, setTrainingPattern] = useState<string | null>(null)
@@ -370,6 +441,7 @@ export default function Home() {
   const [incentiveTrainingLoading, setIncentiveTrainingLoading] = useState(false)
   const [narrativeTraining, setNarrativeTraining] = useState<TrainingScenario | null>(null)
   const [narrativeTrainingLoading, setNarrativeTrainingLoading] = useState(false)
+  const [showAllImprovements, setShowAllImprovements] = useState(false)
 
   const toggleExpanded = (key: string) =>
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
@@ -440,6 +512,7 @@ export default function Home() {
     setBeliefTraining(null)
     setIncentiveTraining(null)
     setNarrativeTraining(null)
+    setShowAllImprovements(false)
     const interval = startProgress(text.trim().split(/\s+/).filter(Boolean).length)
     try {
       const res = await fetch('/api/analyze', {
@@ -632,7 +705,7 @@ export default function Home() {
                   {single.fromCache && (
                     <span style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: '#444440' }}>⚡ cached</span>
                   )}
-                  <ShareButton result={single} />
+                  <ShareButton result={single} originalText={originalText} />
                 </div>
               </div>
             </div>
@@ -681,7 +754,7 @@ export default function Home() {
                   {multi.fromCache && (
                     <span className="text-xs font-mono text-[#444440] border border-[#2e2e2e] px-1.5 py-0.5">⚡ cached</span>
                   )}
-                  <ShareButton result={multi} />
+                  <ShareButton result={multi} originalText={originalText} />
                 </div>
               </div>
               <SpeakerResults speakers={multi.speakers} diarizationMethod={multi.diarizationMethod} />
@@ -945,14 +1018,14 @@ export default function Home() {
                               padding: '6px 0',
                               background: 'transparent',
                               border: 'none',
-                              color: '#c8a84b',
+                              color: '#444440',
                               fontSize: '0.75rem',
                               cursor: 'pointer',
                               textAlign: 'left',
                               fontFamily: 'monospace'
                             }}
                           >
-                            {trainingPattern === issue.name ? '↑ Close practice' : '👉 Practice spotting this →'}
+                            {trainingPattern === issue.name ? '↑ Close practice' : 'Practice spotting this →'}
                           </button>
                           {trainingPattern === issue.name && (
                             trainingLoading
@@ -1000,18 +1073,9 @@ export default function Home() {
                           </ul>
                           <button
                             onClick={handleBeliefTraining}
-                            style={{
-                              marginTop: '12px',
-                              padding: '6px 0',
-                              background: 'transparent',
-                              border: 'none',
-                              color: '#c8a84b',
-                              fontSize: '0.75rem',
-                              cursor: 'pointer',
-                              fontFamily: 'monospace'
-                            }}
+                            style={{ marginTop: '12px', padding: '6px 0', background: 'transparent', border: 'none', color: '#444440', fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'monospace' }}
                           >
-                            {beliefTraining ? '↑ Close practice' : '👉 Practice spotting hidden assumptions →'}
+                            {beliefTraining ? '↑ Close practice' : 'Practice spotting hidden assumptions →'}
                           </button>
                           {beliefTrainingLoading && (
                             <div style={{ fontSize: '0.8rem', color: '#666660', marginTop: '8px', fontFamily: 'monospace' }}>
@@ -1051,18 +1115,9 @@ export default function Home() {
                           </p>
                           <button
                             onClick={handleIncentiveTraining}
-                            style={{
-                              marginTop: '12px',
-                              padding: '6px 0',
-                              background: 'transparent',
-                              border: 'none',
-                              color: '#c8a84b',
-                              fontSize: '0.75rem',
-                              cursor: 'pointer',
-                              fontFamily: 'monospace'
-                            }}
+                            style={{ marginTop: '12px', padding: '6px 0', background: 'transparent', border: 'none', color: '#444440', fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'monospace' }}
                           >
-                            {incentiveTraining ? '↑ Close practice' : '👉 Practice spotting incentive structures →'}
+                            {incentiveTraining ? '↑ Close practice' : 'Practice spotting incentive structures →'}
                           </button>
                           {incentiveTrainingLoading && (
                             <div style={{ fontSize: '0.8rem', color: '#666660', marginTop: '8px', fontFamily: 'monospace' }}>
@@ -1144,9 +1199,9 @@ export default function Home() {
 
                   <button
                     onClick={handleNarrativeTraining}
-                    style={{ marginTop: '16px', padding: '6px 0', background: 'transparent', border: 'none', color: '#c8a84b', fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'monospace' }}
+                    style={{ marginTop: '16px', padding: '6px 0', background: 'transparent', border: 'none', color: '#444440', fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'monospace' }}
                   >
-                    {narrativeTraining ? '↑ Close practice' : '👉 Practice spotting default narratives →'}
+                    {narrativeTraining ? '↑ Close practice' : 'Practice spotting default narratives →'}
                   </button>
                   {narrativeTrainingLoading && (
                     <div style={{ fontSize: '0.8rem', color: '#666660', marginTop: '8px', fontFamily: 'monospace' }}>Generating scenario...</div>
@@ -1185,6 +1240,29 @@ export default function Home() {
                   <div className="mb-6">
                     <p className="text-xs font-mono text-[#444440] tracking-widest uppercase mb-3">Summary</p>
                     <p className="text-sm font-mono text-[#666660] leading-relaxed">{single.summary}</p>
+                  </div>
+                )}
+
+                {/* ── How to Strengthen This ── */}
+                {!isFiction && single.improvements && single.improvements.length > 0 && (
+                  <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #2e2e2e' }}>
+                    <h2 style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c8a84b', marginBottom: '6px', marginTop: 0, fontWeight: 600 }}>
+                      How to Strengthen This
+                    </h2>
+                    <p style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', fontStyle: 'italic', marginBottom: '24px', marginTop: 0 }}>
+                      The highest-leverage gaps — what to address first.
+                    </p>
+                    {(showAllImprovements ? single.improvements : single.improvements.slice(0, 3)).map((imp, i) => (
+                      <ImprovementCard key={i} imp={imp} />
+                    ))}
+                    {single.improvements.length > 3 && (
+                      <button
+                        onClick={() => setShowAllImprovements(v => !v)}
+                        style={{ background: 'transparent', border: 'none', color: '#444440', fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'monospace', padding: '4px 0', marginTop: '4px' }}
+                      >
+                        {showAllImprovements ? '↑ Show less' : `↓ Show ${single.improvements.length - 3} more`}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

@@ -13,7 +13,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function SharePage({ params }: Props) {
-  const result = await kv.get(`share:${params.id}`)
-  if (!result) notFound()
-  return <ShareView result={result} />
+  const stored = await kv.get(`share:${params.id}`)
+  if (!stored) notFound()
+  // Support both old format (just the result object) and new format ({ result, originalText })
+  const isNewFormat = stored !== null && typeof stored === 'object' && 'result' in (stored as object)
+  const result = isNewFormat ? (stored as { result: unknown; originalText?: string }).result : stored
+  const originalText = isNewFormat ? (stored as { result: unknown; originalText?: string }).originalText ?? '' : ''
+  return <ShareView result={result} originalText={originalText} />
 }
