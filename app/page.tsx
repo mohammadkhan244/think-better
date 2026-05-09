@@ -347,17 +347,17 @@ function generateShareText(result: AnalysisResult): string {
 
 function ShareButton({ result }: { result: AnalysisResult }) {
   const [state, setState] = useState<'idle' | 'done'>('idle')
+  const [canShare] = useState(() => typeof navigator !== 'undefined' && 'share' in navigator)
 
   const handle = async () => {
     const text = generateShareText(result)
     const title = 'The Reasoning Machine — Analysis'
-    if (typeof navigator !== 'undefined' && navigator.share) {
+    if (canShare) {
       try { await navigator.share({ title, text }) } catch { /* cancelled */ }
-      setState('done')
     } else {
       await navigator.clipboard.writeText(text)
-      setState('done')
     }
+    setState('done')
     setTimeout(() => setState('idle'), 2000)
   }
 
@@ -369,7 +369,7 @@ function ShareButton({ result }: { result: AnalysisResult }) {
       fontSize: '0.75rem', cursor: 'pointer',
       fontFamily: 'monospace', transition: 'color 0.15s', whiteSpace: 'nowrap'
     }}>
-      {state === 'done' ? 'done ✓' : (typeof navigator !== 'undefined' && navigator.share ? 'share ↗' : 'copy analysis')}
+      {state === 'done' ? 'done ✓' : (canShare ? 'share ↗' : 'copy analysis')}
     </button>
   )
 }
