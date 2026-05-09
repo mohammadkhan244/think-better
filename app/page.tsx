@@ -257,94 +257,6 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-function generateShareText(result: AnalysisResult): string {
-  const lines: string[] = []
-  lines.push('THE REASONING MACHINE')
-  lines.push('─────────────────────')
-  lines.push('')
-
-  if (result.mode === 'single') {
-    const terrain = getTerrainLabel(result.floater.overall)
-    const pc = result.biasesAndFallacies.length
-
-    if (result.domain?.domain && result.domain.domain !== 'general' && result.domain.domain !== 'empirical') {
-      const lbl = domainConfig[result.domain.domain]?.label
-      if (lbl) { lines.push(lbl.toUpperCase()); lines.push('') }
-    }
-
-    lines.push(`SCORE: ${result.floater.overall}/10 (${terrain}) · ${pc} pattern${pc !== 1 ? 's' : ''} detected`)
-    lines.push('')
-
-    lines.push('FLOATER SCORECARD')
-    const fnames: Record<string, string> = { F: 'Falsifiability', L: 'Logic', O: 'Objectivity', A: 'Alternatives', T: 'Tentativeness', E: 'Evidence', R: 'Replicability' }
-    for (const k of ['F','L','O','A','T','E','R']) {
-      const s = result.floater.scores[k]?.score
-      if (s !== undefined) lines.push(`${k}  ${fnames[k].padEnd(16)} ${s}/10`)
-    }
-    lines.push('')
-
-    if (result.biasesAndFallacies.length > 0) {
-      lines.push('REASONING PATTERNS DETECTED')
-      for (const i of result.biasesAndFallacies)
-        lines.push(`· ${i.name} — "${i.matchedText}"`)
-      lines.push('')
-    }
-
-    if (result.beliefSystem?.coreAssumptions.length) {
-      lines.push('OPERATING BELIEF SYSTEM')
-      lines.push('Core Assumptions:')
-      for (const a of result.beliefSystem.coreAssumptions) lines.push(`· ${a}`)
-      lines.push('')
-      if (result.beliefSystem.loadBearingBeliefs.length) {
-        lines.push('If These Were False, The Argument Collapses:')
-        for (const b of result.beliefSystem.loadBearingBeliefs) lines.push(`→ ${b}`)
-        lines.push('')
-      }
-      if (result.beliefSystem.incentiveSystem) {
-        lines.push(`Incentive System: ${result.beliefSystem.incentiveSystem}`)
-        lines.push('')
-      }
-    }
-
-    if (result.defaultNarrative?.narrative) {
-      lines.push('DEFAULT NARRATIVE')
-      lines.push(`"${result.defaultNarrative.narrative}"`)
-      lines.push('')
-    }
-
-    const allQ = [...(result.followUpQuestions.defend ?? []), ...(result.followUpQuestions.challenge ?? []), ...(result.followUpQuestions.missing ?? [])]
-    if (allQ.length) {
-      lines.push('QUESTIONS THAT PRESSURE-TEST THIS ARGUMENT')
-      allQ.forEach((q, i) => lines.push(`${i + 1}. ${q}`))
-      lines.push('')
-    }
-  } else {
-    lines.push(`CONVERSATION ANALYSIS — ${result.speakers.length} speakers`)
-    lines.push('')
-    for (const sp of result.speakers) {
-      lines.push(`── ${sp.speaker} ──`)
-      lines.push(`Score: ${sp.floater.overall}/10 (${getTerrainLabel(sp.floater.overall)})`)
-      if (sp.biasesAndFallacies.length) lines.push(`Patterns: ${sp.biasesAndFallacies.map(i => i.name).join(', ')}`)
-      lines.push('')
-    }
-    if (result.beliefSystem?.coreAssumptions.length) {
-      lines.push('SHARED BELIEF SYSTEM')
-      for (const a of result.beliefSystem.coreAssumptions) lines.push(`· ${a}`)
-      lines.push('')
-    }
-    if (result.defaultNarrative?.narrative) {
-      lines.push('DEFAULT NARRATIVE')
-      lines.push(`"${result.defaultNarrative.narrative}"`)
-      lines.push('')
-    }
-  }
-
-  lines.push('─────────────────────')
-  lines.push('Analyzed with The Reasoning Machine')
-  lines.push(typeof window !== 'undefined' ? window.location.origin : '')
-  return lines.join('\n')
-}
-
 async function getTinyUrl(): Promise<string> {
   try {
     const url = typeof window !== 'undefined' ? window.location.origin : ''
@@ -354,30 +266,30 @@ async function getTinyUrl(): Promise<string> {
   return typeof window !== 'undefined' ? window.location.origin : ''
 }
 
-function ShareButton({ result }: { result: AnalysisResult }) {
+function ShareButton() {
   const [state, setState] = useState<'idle' | 'loading' | 'done'>('idle')
   const [hovered, setHovered] = useState(false)
+  const [doneLabel, setDoneLabel] = useState('link copied')
   const [canShare] = useState(() => typeof navigator !== 'undefined' && 'share' in navigator)
 
   const handle = async () => {
     if (state !== 'idle') return
     setState('loading')
     const shortUrl = await getTinyUrl()
-    const text = generateShareText(result).replace(
-      typeof window !== 'undefined' ? window.location.origin : '',
-      shortUrl
-    )
-    const title = 'The Reasoning Machine — Analysis'
     if (canShare) {
-      try { await navigator.share({ title, text }) } catch { /* cancelled */ }
+      try {
+        await navigator.share({ url: shortUrl, title: 'The Reasoning Machine' })
+        setDoneLabel('shared ✓')
+      } catch { /* cancelled */ }
     } else {
-      await navigator.clipboard.writeText(text)
+      await navigator.clipboard.writeText(shortUrl)
+      setDoneLabel('link copied')
     }
     setState('done')
     setTimeout(() => setState('idle'), 2000)
   }
 
-  const label = state === 'loading' ? '...' : state === 'done' ? 'done ✓' : canShare ? 'share ↗' : 'copy analysis'
+  const label = state === 'loading' ? '...' : state === 'done' ? doneLabel : 'share ↗'
   const bg = hovered && state === 'idle' ? '#c8a84b' : 'transparent'
   const color = state !== 'idle' ? '#c8a84b' : hovered ? '#0e0e0e' : '#c8a84b'
 
@@ -719,7 +631,7 @@ export default function Home() {
                   {single.fromCache && (
                     <span style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: '#444440' }}>⚡ cached</span>
                   )}
-                  <ShareButton result={single} />
+                  <ShareButton />
                 </div>
               </div>
             </div>
@@ -768,7 +680,7 @@ export default function Home() {
                   {multi.fromCache && (
                     <span className="text-xs font-mono text-[#444440] border border-[#2e2e2e] px-1.5 py-0.5">⚡ cached</span>
                   )}
-                  <ShareButton result={multi} />
+                  <ShareButton />
                 </div>
               </div>
               <SpeakerResults speakers={multi.speakers} diarizationMethod={multi.diarizationMethod} />
