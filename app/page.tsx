@@ -700,12 +700,22 @@ export default function Home() {
         {/* ── Header + Input ── */}
         <div className="px-6 pt-16 pb-6 md:pt-16 md:pb-6 md:px-0">
           <header className="mb-8">
-            <h1 className="font-serif text-4xl text-[#e8e8e0] tracking-tight mb-2">
-              The Reasoning Machine
-            </h1>
-            <p className="font-mono text-xs text-[#888880] tracking-widest uppercase mb-6">
-              Not what to think — how to think.
-            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '1.6rem', fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1, userSelect: 'none' }}>
+                  <span style={{ color: '#c8a84b' }}>[</span>
+                  <span style={{ color: 'rgba(200,168,75,0.3)' }}>[</span>
+                  <span style={{ color: 'rgba(200,168,75,0.3)' }}>]</span>
+                  <span style={{ color: '#c8a84b' }}>]</span>
+                </div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.8rem', fontWeight: 400, letterSpacing: '0.16em', color: '#e8e8e0', textTransform: 'uppercase', lineHeight: 1.3 }}>
+                  The Reasoning<br />Machine
+                </div>
+              </div>
+              <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.72rem', letterSpacing: '0.1em', color: '#888880', margin: 0, textTransform: 'uppercase' }}>
+                Not what to think — how to think.
+              </p>
+            </div>
             <p className="text-sm font-mono text-[#e8e8e0] leading-relaxed mb-1">
               Most people argue from conviction. This shows you what&apos;s underneath it.
             </p>
