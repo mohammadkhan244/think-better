@@ -444,9 +444,38 @@ export default function Home() {
   const [narrativeTrainingLoading, setNarrativeTrainingLoading] = useState(false)
   const [showAllImprovements, setShowAllImprovements] = useState(false)
   const [prefillText, setPrefillText] = useState('')
+  const [feedbackCopied, setFeedbackCopied] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   const toggleExpanded = (key: string) =>
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
+
+  const handleFeedback = async () => {
+    try {
+      await navigator.clipboard.writeText('mohammadkhan@themohammadkhan.com')
+      setFeedbackCopied(true)
+      setTimeout(() => setFeedbackCopied(false), 2000)
+    } catch {
+      const el = document.createElement('textarea')
+      el.value = 'mohammadkhan@themohammadkhan.com'
+      el.style.position = 'fixed'
+      el.style.opacity = '0'
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+      setFeedbackCopied(true)
+      setTimeout(() => setFeedbackCopied(false), 2000)
+    }
+  }
 
   const startProgress = (wordCount = 0) => {
     setProgress(0)
@@ -639,6 +668,31 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#0e0e0e] text-[#e8e8e0]">
+
+      <button
+        onClick={handleFeedback}
+        title="Send feedback"
+        style={{
+          position: 'fixed',
+          bottom: isMobile ? 'calc(56px + 12px + env(safe-area-inset-bottom))' : '24px',
+          right: '16px',
+          zIndex: 300,
+          padding: '8px 14px',
+          background: feedbackCopied ? 'rgba(200, 168, 75, 0.15)' : 'rgba(14, 14, 14, 0.9)',
+          border: feedbackCopied ? '1px solid #c8a84b' : '1px solid #2e2e2e',
+          color: feedbackCopied ? '#c8a84b' : '#666660',
+          fontSize: '0.72rem',
+          letterSpacing: '0.04em',
+          cursor: 'pointer',
+          borderRadius: '4px',
+          transition: 'all 0.2s ease',
+          whiteSpace: 'nowrap',
+          backdropFilter: 'blur(8px)',
+          fontFamily: 'monospace',
+        }}
+      >
+        {feedbackCopied ? '✓ Copied!' : 'Feedback'}
+      </button>
 
       {/* ── Single column, max 800px on desktop ── */}
       <div className="md:max-w-[800px] md:mx-auto md:px-6">
