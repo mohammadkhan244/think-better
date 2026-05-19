@@ -69,7 +69,7 @@ STRICT RULES:
 
 TEXT:
 """
-${text.slice(0, 10000)}
+${isMulti ? text.slice(0, 28000) : text.slice(0, 15000)}
 """
 
 Return ONLY this exact JSON, nothing else. No markdown. No preamble:
@@ -90,7 +90,7 @@ Return ONLY this exact JSON, nothing else. No markdown. No preamble:
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: hasSpeakers && speakers.length > 1 ? 1200 : 700,
+      max_tokens: hasSpeakers && speakers.length > 1 ? 1800 : 800,
       temperature: 0,
       messages: [{ role: 'user', content: prompt }]
     })
