@@ -112,14 +112,9 @@ Return ONLY this exact JSON, nothing else. No markdown. No preamble:
     }
   } catch {
     return {
-      coreAssumptions: [
-        'Belief system analysis could not be completed for this input.',
-        'Try re-analyzing with a longer or more structured argument.'
-      ],
-      loadBearingBeliefs: [
-        'This argument collapses if its core premise is unsupported.'
-      ],
-      incentiveSystem: 'Unable to determine incentive system from this input.',
+      coreAssumptions: [],
+      loadBearingBeliefs: [],
+      incentiveSystem: '',
       speakerComparison: null
     }
   }
