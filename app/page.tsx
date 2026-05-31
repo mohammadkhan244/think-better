@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import LandingClient from './LandingClient'
 
 export const metadata: Metadata = {
-  title: 'The Reasoning Machine — Not what to think. How to think.',
+  title: 'The Reasoning Machine — Confidence is not evidence.',
   description: 'Paste any argument, article, or claim. Get back exactly where it\'s strong, where it\'s exposed, and the questions that pressure-test it. Same input, same score, every time.',
   openGraph: {
     title: 'Confidence is not evidence.',
