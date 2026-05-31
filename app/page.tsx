@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import InputTabs from '@/components/InputTabs'
 import BiasCard from '@/components/BiasCard'
 import SpeakerResults from '@/components/SpeakerResults'
@@ -700,6 +701,12 @@ export default function Home() {
         {/* ── Header + Input ── */}
         <div className="px-6 pt-16 pb-6 md:pt-16 md:pb-6 md:px-0">
           <header className="mb-8">
+            <Link
+              href="/landing"
+              style={{ display: 'inline-block', fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.7rem', color: '#444440', textDecoration: 'none', marginBottom: '20px', letterSpacing: '0.04em' }}
+            >
+              ← back
+            </Link>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginBottom: '24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                 <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '1.6rem', fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1, userSelect: 'none' }}>
