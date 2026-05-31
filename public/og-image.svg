@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="627" viewBox="0 0 1200 627">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&amp;family=JetBrains+Mono:wght@400&amp;display=swap');
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="627" fill="#0a0908"/>
+
+  <!-- Faint FLOATER hexagon decoration (top-right) -->
+  <g transform="translate(880, 80)" opacity="0.06" stroke="#c8a84b" fill="none">
+    <polygon points="180,20 320,100 320,260 180,340 40,260 40,100" stroke-width="0.8"/>
+    <polygon points="180,50 295,118 295,242 180,310 65,242 65,118" stroke-width="0.8"/>
+    <polygon points="180,80 270,136 270,224 180,280 90,224 90,136" stroke-width="0.8"/>
+    <line x1="180" y1="20" x2="180" y2="340" stroke-width="0.5"/>
+    <line x1="40" y1="100" x2="320" y2="260" stroke-width="0.5"/>
+    <line x1="320" y1="100" x2="40" y2="260" stroke-width="0.5"/>
+  </g>
+
+  <!-- Brand mark: [[ ]] -->
+  <text x="80" y="116" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="36" fill="#c8a84b" letter-spacing="-1">[</text>
+  <text x="100" y="116" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="36" fill="rgba(200,168,75,0.3)" letter-spacing="-1">[ ]</text>
+  <text x="148" y="116" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="36" fill="#c8a84b" letter-spacing="-1">]</text>
+  <text x="190" y="104" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="11" fill="rgba(232,228,219,0.4)" letter-spacing="3">THE REASONING</text>
+  <text x="190" y="120" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="11" fill="rgba(232,228,219,0.4)" letter-spacing="3">MACHINE</text>
+
+  <!-- Main headline -->
+  <text x="80" y="280" font-family="'DM Serif Display', Georgia, serif" font-size="96" font-weight="400" fill="#f0ece4" letter-spacing="-2">Confidence is</text>
+  <text x="80" y="390" font-family="'DM Serif Display', Georgia, serif" font-size="96" font-weight="400" fill="#f0ece4" letter-spacing="-2">not evidence.</text>
+
+  <!-- Subtitle lines -->
+  <text x="80" y="462" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="18" fill="rgba(232,228,219,0.45)" letter-spacing="0.5">Paste any argument. See the structure under the conviction.</text>
+  <text x="80" y="490" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="18" fill="rgba(232,228,219,0.45)" letter-spacing="0.5">Same input, same score, every time.</text>
+
+  <!-- Gold accent line -->
+  <line x1="80" y1="528" x2="340" y2="528" stroke="#c8a84b" stroke-width="1.5" opacity="0.6"/>
+
+  <!-- URL -->
+  <text x="80" y="572" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="15" fill="rgba(200,168,75,0.6)" letter-spacing="1">think-better-nine.vercel.app</text>
+</svg>
