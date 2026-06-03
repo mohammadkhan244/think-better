@@ -15,92 +15,71 @@ export async function GET() {
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
-          fontFamily: '"Courier New", monospace',
         }}
       >
-        {/* Hexagon rings — drawn as nested bordered boxes approximating the look */}
-        <div style={{
-          position: 'absolute',
-          width: '360px',
-          height: '360px',
-          border: '1px solid rgba(200,168,75,0.07)',
-          borderRadius: '50%',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          display: 'flex',
-        }}/>
-        <div style={{
-          position: 'absolute',
-          width: '260px',
-          height: '260px',
-          border: '1px solid rgba(200,168,75,0.05)',
-          borderRadius: '50%',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          display: 'flex',
-        }}/>
-
         {/* Logo mark */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0px', marginBottom: '12px' }}>
-          <span style={{ fontSize: '64px', color: '#c8a84b', lineHeight: 1, letterSpacing: '-2px' }}>[</span>
-          <span style={{ fontSize: '64px', color: 'rgba(200,168,75,0.28)', lineHeight: 1, letterSpacing: '-2px' }}>[ ]</span>
-          <span style={{ fontSize: '64px', color: '#c8a84b', lineHeight: 1, letterSpacing: '-2px' }}>]</span>
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: '12px' }}>
+          <span style={{ fontSize: '64px', color: '#c8a84b', lineHeight: '1', fontFamily: 'monospace' }}>[</span>
+          <span style={{ fontSize: '64px', color: 'rgba(200,168,75,0.28)', lineHeight: '1', fontFamily: 'monospace' }}>[</span>
+          <span style={{ fontSize: '64px', color: 'rgba(200,168,75,0.28)', lineHeight: '1', fontFamily: 'monospace' }}>]</span>
+          <span style={{ fontSize: '64px', color: '#c8a84b', lineHeight: '1', fontFamily: 'monospace' }}>]</span>
         </div>
 
         {/* Wordmark */}
         <div style={{
+          display: 'flex',
           fontSize: '13px',
           letterSpacing: '6px',
           color: 'rgba(232,228,219,0.45)',
-          marginBottom: '28px',
-          textTransform: 'uppercase',
-          display: 'flex',
+          marginBottom: '32px',
+          fontFamily: 'monospace',
         }}>
           THE REASONING MACHINE
         </div>
 
         {/* Divider */}
         <div style={{
+          display: 'flex',
           width: '240px',
           height: '1px',
-          background: 'rgba(200,168,75,0.2)',
+          background: 'rgba(200,168,75,0.25)',
           marginBottom: '40px',
-          display: 'flex',
-        }}/>
+        }} />
 
         {/* Headline */}
         <div style={{
+          display: 'flex',
           fontSize: '64px',
           color: '#f0ece4',
-          fontFamily: 'Georgia, serif',
+          fontFamily: 'serif',
+          fontWeight: 400,
+          marginBottom: '20px',
           textAlign: 'center',
-          lineHeight: 1.1,
-          marginBottom: '24px',
-          display: 'flex',
+          lineHeight: '1.1',
         }}>
           Confidence is not evidence.
         </div>
 
-        {/* Subtitle */}
+        {/* Subline */}
         <div style={{
-          fontSize: '19px',
-          color: 'rgba(232,228,219,0.45)',
-          textAlign: 'center',
           display: 'flex',
+          fontSize: '20px',
+          color: 'rgba(232,228,219,0.4)',
+          fontFamily: 'monospace',
+          textAlign: 'center',
         }}>
           The structure under the conviction.
         </div>
 
         {/* URL */}
         <div style={{
+          display: 'flex',
           position: 'absolute',
-          bottom: '48px',
+          bottom: '40px',
           fontSize: '13px',
           letterSpacing: '3px',
-          color: 'rgba(200,168,75,0.35)',
-          display: 'flex',
+          color: 'rgba(200,168,75,0.4)',
+          fontFamily: 'monospace',
         }}>
           think-better-nine.vercel.app
         </div>
