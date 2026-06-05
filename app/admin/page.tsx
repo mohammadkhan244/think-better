@@ -2,6 +2,43 @@
 
 import { useState } from 'react'
 
+interface FeedbackEntry {
+  id: string
+  timestamp: number
+  type: string
+  message: string
+  email?: string
+}
+
+interface AnalysisEvent {
+  id: string
+  timestamp: number
+  inputType: string
+  wordCount: number
+  domain: string
+  patternCount: number
+  floaterOverall: number
+}
+
+interface Summary {
+  totalAnalyses: number
+  inputTypeCounts: Record<string, number>
+  domainCounts: Record<string, number>
+  patternCounts: Record<string, number>
+  floaterTotals: Record<string, number>
+  floaterCount: number
+  narratives: string[]
+  bookTitles: string[]
+}
+
+interface AdminData {
+  summary: Summary | null
+  recentEvents: AnalysisEvent[]
+  feedback: FeedbackEntry[]
+  totalEvents: number
+  totalFeedback: number
+}
+
 type Section =
   'overview' | 'floater' | 'patterns' |
   'narratives' | 'books' | 'feedback' | 'events'
@@ -21,7 +58,7 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<AdminData | null>(null)
   const [activeSection, setActiveSection] = useState<Section>('overview')
   const [viewAll, setViewAll] = useState(false)
 
@@ -154,6 +191,8 @@ export default function AdminPage() {
       </div>
     )
   }
+
+  if (!data) return null
 
   const cell = (v: React.ReactNode) => (
     <td style={{
@@ -454,7 +493,7 @@ export default function AdminPage() {
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {data.feedback.map((f: any) => (
+              {data.feedback.map((f: FeedbackEntry) => (
                 <div key={f.id} style={{
                   background: '#141210',
                   border: '1px solid rgba(200,168,75,0.1)',
@@ -507,7 +546,7 @@ export default function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {data.recentEvents.map((e: any) => (
+              {data.recentEvents.map((e: AnalysisEvent) => (
                 <tr key={e.id}>
                   {cell(new Date(e.timestamp).toLocaleDateString())}
                   {cell(e.inputType)}
