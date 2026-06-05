@@ -423,6 +423,13 @@ export default function Home() {
   }, [progressInterval])
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('admin') === 'true') {
+      window.location.href = '/admin'
+    }
+  }, [])
+
+  useEffect(() => {
     const prefill = sessionStorage.getItem('rm_prefill')
     if (prefill) {
       sessionStorage.removeItem('rm_prefill')

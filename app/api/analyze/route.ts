@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { kv } from '@vercel/kv'
 import { runFLOATER } from '@/lib/floater'
 import { runDetectors } from '@/lib/detectors'
 import { generateQuestions } from '@/lib/questions'
@@ -30,7 +31,8 @@ const DEFAULT_QUESTIONS = {
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, sourceType } = await req.json()
+    const { text, sourceType, inputType: rawInputType } = await req.json()
+    const inputType = rawInputType || sourceType || 'text'
 
     if (!text || typeof text !== 'string') {
       return NextResponse.json({ error: 'Text is required.' }, { status: 400 })
@@ -195,6 +197,98 @@ export async function POST(req: NextRequest) {
       fromCache: false,
     }
     if (!noCache) setInCache(cacheKey, result)
+
+    // Log to KV — fire and forget
+    ;(async () => {
+      try {
+        const eventId = crypto.randomUUID()
+        const timestamp = Date.now()
+        const key = `rm:event:${timestamp}:${eventId}`
+
+        const event = {
+          id: eventId,
+          timestamp,
+          inputType: inputType || 'text',
+          wordCount: trimmed.split(/\s+/).length,
+          domain: domainResult.domain,
+          domainConfidence: domainResult.confidence,
+          isFiction: domainResult.domain === 'fiction',
+          floaterScores: {
+            F: floaterResult.scores.F.score,
+            L: floaterResult.scores.L.score,
+            O: floaterResult.scores.O.score,
+            A: floaterResult.scores.A.score,
+            T: floaterResult.scores.T.score,
+            E: floaterResult.scores.E.score,
+            R: floaterResult.scores.R.score,
+          },
+          floaterOverall: floaterResult.overall,
+          patternCount: detectedIssues.length,
+          patternNames: detectedIssues.map(i => i.name),
+          defaultNarrative: defaultNarrative?.narrative || null,
+          bookTitles: resources?.books?.map(b => b.title) || [],
+          fromCache: false
+        }
+
+        await kv.set(key, JSON.stringify(event))
+
+        // Update running summary
+        const summaryRaw = await kv.get('rm:stats:summary')
+        const summary = summaryRaw
+          ? JSON.parse(summaryRaw as string)
+          : {
+              totalAnalyses: 0,
+              inputTypeCounts: { text: 0, pdf: 0, article: 0, youtube: 0 },
+              domainCounts: {},
+              patternCounts: {},
+              floaterTotals: { F:0, L:0, O:0, A:0, T:0, E:0, R:0 },
+              floaterCount: 0,
+              narratives: [],
+              bookTitles: []
+            }
+
+        summary.totalAnalyses++
+
+        const iType = (inputType || 'text') as string
+        summary.inputTypeCounts[iType] =
+          (summary.inputTypeCounts[iType] || 0) + 1
+
+        summary.domainCounts[domainResult.domain] =
+          (summary.domainCounts[domainResult.domain] || 0) + 1
+
+        detectedIssues.forEach(i => {
+          summary.patternCounts[i.name] =
+            (summary.patternCounts[i.name] || 0) + 1
+        })
+
+        const dims = ['F','L','O','A','T','E','R'] as const
+        dims.forEach(d => {
+          summary.floaterTotals[d] += floaterResult.scores[d].score
+        })
+        summary.floaterCount++
+
+        if (defaultNarrative?.narrative) {
+          summary.narratives = [
+            defaultNarrative.narrative,
+            ...(summary.narratives || [])
+          ].slice(0, 100)
+        }
+
+        if (resources?.books) {
+          resources.books.forEach(b => {
+            if (!summary.bookTitles.includes(b.title)) {
+              summary.bookTitles.push(b.title)
+            }
+          })
+          summary.bookTitles = summary.bookTitles.slice(0, 200)
+        }
+
+        await kv.set('rm:stats:summary', JSON.stringify(summary))
+
+      } catch (err) {
+        console.error('KV logging failed:', err)
+      }
+    })()
 
     // Fire and forget — do not await, never block the response
     if (detectedIssues.length > 0) {
