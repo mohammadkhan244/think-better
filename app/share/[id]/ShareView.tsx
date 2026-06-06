@@ -284,7 +284,8 @@ function BooksSection({ books }: { books: BookEntry[] }) {
             <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#666660', marginBottom: '4px' }}>{book.category}</div>
             <div style={{ fontFamily: 'monospace', fontSize: '0.95rem', fontWeight: 600, marginBottom: '2px', color: '#e8e8e0' }}>{book.title}</div>
             <div style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666660', marginBottom: '8px' }}>{book.author}</div>
-            <div style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.5' }}>{book.why}</div>
+            <div style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#e8e8e0', lineHeight: '1.5', marginBottom: '10px' }}>{book.why}</div>
+            <a href={`https://bookshop.org/search?keywords=${encodeURIComponent(book.title + ' ' + book.author)}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#c8a84b', textDecoration: 'none', letterSpacing: '0.04em' }}>Find on Bookshop.org →</a>
           </div>
         ))}
       </div>
