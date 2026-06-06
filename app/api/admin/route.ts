@@ -12,50 +12,55 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Wrong password.' }, { status: 401 })
   }
 
+  // Fetch each section independently — a missing key never blocks the others
+  let summary = null
+  let recentEvents: unknown[] = []
+  let feedback: unknown[] = []
+  let totalEvents = 0
+  let totalFeedback = 0
+  const errors: string[] = []
+
   try {
-    const summaryRaw = await kv.get('rm:stats:summary')
-    const summary = summaryRaw ? JSON.parse(summaryRaw as string) : null
-
-    const eventKeys = await kv.keys('rm:event:*')
-    const sortedKeys = eventKeys
-      .sort((a, b) => {
-        const tsA = parseInt(a.split(':')[2])
-        const tsB = parseInt(b.split(':')[2])
-        return tsB - tsA
-      })
-      .slice(0, 50)
-
-    const events = await Promise.all(
-      sortedKeys.map(async k => {
-        const raw = await kv.get(k)
-        return raw ? JSON.parse(raw as string) : null
-      })
-    )
-
-    const feedbackKeys = await kv.keys('rm:feedback:*')
-    const sortedFeedbackKeys = feedbackKeys.sort((a, b) => {
-      const tsA = parseInt(a.split(':')[2])
-      const tsB = parseInt(b.split(':')[2])
-      return tsB - tsA
-    })
-
-    const feedback = await Promise.all(
-      sortedFeedbackKeys.map(async k => {
-        const raw = await kv.get(k)
-        return raw ? JSON.parse(raw as string) : null
-      })
-    )
-
-    return NextResponse.json({
-      summary,
-      recentEvents: events.filter(Boolean),
-      feedback: feedback.filter(Boolean),
-      totalEvents: eventKeys.length,
-      totalFeedback: feedbackKeys.length,
-    })
-
-  } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: 'Failed to load data.' }, { status: 500 })
+    const raw = await kv.get('rm:stats:summary')
+    summary = raw ? JSON.parse(raw as string) : null
+  } catch (e) {
+    errors.push(`summary: ${e}`)
   }
+
+  try {
+    const eventKeys: string[] = (await kv.keys('rm:event:*')) ?? []
+    totalEvents = eventKeys.length
+    const sorted = eventKeys
+      .sort((a, b) => parseInt(b.split(':')[2]) - parseInt(a.split(':')[2]))
+      .slice(0, 50)
+    const raws = await Promise.all(sorted.map(k => kv.get(k)))
+    recentEvents = raws.flatMap(r => {
+      try { return r ? [JSON.parse(r as string)] : [] } catch { return [] }
+    })
+  } catch (e) {
+    errors.push(`events: ${e}`)
+  }
+
+  try {
+    const fbKeys: string[] = (await kv.keys('rm:feedback:*')) ?? []
+    totalFeedback = fbKeys.length
+    const sorted = fbKeys.sort(
+      (a, b) => parseInt(b.split(':')[2]) - parseInt(a.split(':')[2])
+    )
+    const raws = await Promise.all(sorted.map(k => kv.get(k)))
+    feedback = raws.flatMap(r => {
+      try { return r ? [JSON.parse(r as string)] : [] } catch { return [] }
+    })
+  } catch (e) {
+    errors.push(`feedback: ${e}`)
+  }
+
+  return NextResponse.json({
+    summary,
+    recentEvents,
+    feedback,
+    totalEvents,
+    totalFeedback,
+    ...(errors.length ? { _errors: errors } : {}),
+  })
 }
