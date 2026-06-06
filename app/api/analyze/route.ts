@@ -198,10 +198,9 @@ export async function POST(req: NextRequest) {
     }
     if (!noCache) setInCache(cacheKey, result)
 
-    // Log to KV — fire and forget
-    ;(async () => {
-      try {
-        const eventId = crypto.randomUUID()
+    // Log to KV — awaited so Vercel doesn't kill it before completion
+    try {
+      const eventId = crypto.randomUUID()
         const timestamp = Date.now()
         const key = `rm:event:${timestamp}:${eventId}`
 
@@ -285,10 +284,9 @@ export async function POST(req: NextRequest) {
 
         await kv.set('rm:stats:summary', JSON.stringify(summary))
 
-      } catch (err) {
-        console.error('KV logging failed:', err)
-      }
-    })()
+    } catch (err) {
+      console.error('KV logging failed:', err)
+    }
 
     // Fire and forget — do not await, never block the response
     if (detectedIssues.length > 0) {

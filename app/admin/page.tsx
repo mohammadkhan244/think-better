@@ -61,6 +61,9 @@ export default function AdminPage() {
   const [data, setData] = useState<AdminData | null>(null)
   const [activeSection, setActiveSection] = useState<Section>('overview')
   const [viewAll, setViewAll] = useState(false)
+  const [ingestUrl, setIngestUrl] = useState('')
+  const [ingestStatus, setIngestStatus] = useState('')
+  const [ingestLoading, setIngestLoading] = useState(false)
 
   const handleLogin = async () => {
     setLoading(true)
@@ -83,6 +86,25 @@ export default function AdminPage() {
       setError('Failed to connect.')
     }
     setLoading(false)
+  }
+
+  const handleIngest = async () => {
+    if (!ingestUrl.trim()) return
+    setIngestLoading(true)
+    setIngestStatus('')
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, action: 'ingest', shareUrl: ingestUrl.trim() })
+      })
+      const d = await res.json()
+      setIngestStatus(d.message || (d.ok ? 'Done.' : 'Failed.'))
+      if (d.ok) setIngestUrl('')
+    } catch {
+      setIngestStatus('Request failed.')
+    }
+    setIngestLoading(false)
   }
 
   const s = data?.summary
@@ -318,11 +340,49 @@ export default function AdminPage() {
           ))}
         </select>
 
-        <span style={{
-          marginLeft: 'auto',
-          fontSize: '0.72rem',
-          color: 'rgba(232,228,219,0.4)',
-        }}>
+        {/* Ingest from share link */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+          <input
+            value={ingestUrl}
+            onChange={e => setIngestUrl(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleIngest()}
+            placeholder="Paste share URL to ingest…"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(200,168,75,0.15)',
+              color: '#e8e4db',
+              fontFamily: 'monospace',
+              fontSize: '0.72rem',
+              padding: '5px 10px',
+              borderRadius: '4px',
+              outline: 'none',
+              width: '260px',
+            }}
+          />
+          <button
+            onClick={handleIngest}
+            disabled={ingestLoading || !ingestUrl.trim()}
+            style={{
+              background: ingestUrl.trim() ? '#c8a84b' : 'rgba(200,168,75,0.2)',
+              border: 'none',
+              color: ingestUrl.trim() ? '#0a0908' : 'rgba(200,168,75,0.4)',
+              fontFamily: 'monospace',
+              fontSize: '0.72rem',
+              padding: '5px 12px',
+              borderRadius: '4px',
+              cursor: ingestUrl.trim() ? 'pointer' : 'not-allowed',
+            }}
+          >
+            {ingestLoading ? '…' : 'Ingest →'}
+          </button>
+          {ingestStatus && (
+            <span style={{ fontSize: '0.7rem', color: ingestStatus.startsWith('Ingested') ? '#c8a84b' : 'rgba(200,100,100,0.8)' }}>
+              {ingestStatus}
+            </span>
+          )}
+        </div>
+
+        <span style={{ fontSize: '0.72rem', color: 'rgba(232,228,219,0.4)', flexShrink: 0 }}>
           {data.totalEvents} analyses · {data.totalFeedback} feedback
         </span>
       </div>
