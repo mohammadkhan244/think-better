@@ -229,22 +229,30 @@ export async function POST(req: NextRequest) {
           fromCache: false
         }
 
-        await kv.set(key, JSON.stringify(event))
+        await kv.set(key, event)
 
-        // Update running summary
-        const summaryRaw = await kv.get('rm:stats:summary')
-        const summary = summaryRaw
-          ? JSON.parse(summaryRaw as string)
-          : {
-              totalAnalyses: 0,
-              inputTypeCounts: { text: 0, pdf: 0, article: 0, youtube: 0 },
-              domainCounts: {},
-              patternCounts: {},
-              floaterTotals: { F:0, L:0, O:0, A:0, T:0, E:0, R:0 },
-              floaterCount: 0,
-              narratives: [],
-              bookTitles: []
-            }
+        // Update running summary — store/retrieve as plain object, no JSON.stringify
+        type Summary = {
+          totalAnalyses: number
+          inputTypeCounts: Record<string, number>
+          domainCounts: Record<string, number>
+          patternCounts: Record<string, number>
+          floaterTotals: Record<string, number>
+          floaterCount: number
+          narratives: string[]
+          bookTitles: string[]
+        }
+        const storedSummary = await kv.get('rm:stats:summary') as Summary | null
+        const summary: Summary = storedSummary ?? {
+          totalAnalyses: 0,
+          inputTypeCounts: { text: 0, pdf: 0, article: 0, youtube: 0 },
+          domainCounts: {},
+          patternCounts: {},
+          floaterTotals: { F:0, L:0, O:0, A:0, T:0, E:0, R:0 },
+          floaterCount: 0,
+          narratives: [],
+          bookTitles: []
+        }
 
         summary.totalAnalyses++
 
@@ -282,7 +290,7 @@ export async function POST(req: NextRequest) {
           summary.bookTitles = summary.bookTitles.slice(0, 200)
         }
 
-        await kv.set('rm:stats:summary', JSON.stringify(summary))
+        await kv.set('rm:stats:summary', summary)
 
     } catch (err) {
       console.error('KV logging failed:', err)

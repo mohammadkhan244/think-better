@@ -64,6 +64,8 @@ export default function AdminPage() {
   const [ingestUrl, setIngestUrl] = useState('')
   const [ingestStatus, setIngestStatus] = useState('')
   const [ingestLoading, setIngestLoading] = useState(false)
+  const [rebuilding, setRebuilding] = useState(false)
+  const [rebuildStatus, setRebuildStatus] = useState('')
 
   const handleLogin = async () => {
     setLoading(true)
@@ -86,6 +88,32 @@ export default function AdminPage() {
       setError('Failed to connect.')
     }
     setLoading(false)
+  }
+
+  const handleRebuild = async () => {
+    setRebuilding(true)
+    setRebuildStatus('')
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, action: 'rebuild' })
+      })
+      const d = await res.json()
+      setRebuildStatus(d.message || (d.ok ? 'Done.' : 'Failed.'))
+      if (d.ok) {
+        // Reload data
+        const res2 = await fetch('/api/admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        })
+        if (res2.ok) setData(await res2.json())
+      }
+    } catch {
+      setRebuildStatus('Request failed.')
+    }
+    setRebuilding(false)
   }
 
   const handleIngest = async () => {
@@ -340,8 +368,34 @@ export default function AdminPage() {
           ))}
         </select>
 
-        {/* Ingest from share link */}
+        {/* Rebuild summary */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+          <button
+            onClick={handleRebuild}
+            disabled={rebuilding}
+            style={{
+              background: 'rgba(200,168,75,0.12)',
+              border: '1px solid rgba(200,168,75,0.25)',
+              color: '#c8a84b',
+              fontFamily: 'monospace',
+              fontSize: '0.72rem',
+              padding: '5px 12px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            {rebuilding ? 'Rebuilding…' : 'Rebuild Summary'}
+          </button>
+          {rebuildStatus && (
+            <span style={{ fontSize: '0.7rem', color: rebuildStatus.startsWith('Rebuilt') ? '#c8a84b' : 'rgba(200,100,100,0.8)', maxWidth: '200px' }}>
+              {rebuildStatus}
+            </span>
+          )}
+        </div>
+
+        {/* Ingest from share link */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
           <input
             value={ingestUrl}
             onChange={e => setIngestUrl(e.target.value)}
