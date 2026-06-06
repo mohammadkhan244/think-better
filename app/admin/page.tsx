@@ -76,7 +76,8 @@ export default function AdminPage() {
         setData(d)
         setAuthed(true)
       } else {
-        setError('Wrong password.')
+        const body = await res.json().catch(() => ({}))
+        setError(body.error || 'Wrong password.')
       }
     } catch {
       setError('Failed to connect.')

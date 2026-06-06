@@ -5,8 +5,11 @@ export async function POST(req: NextRequest) {
   const { password } = await req.json()
 
   const expected = (process.env.ADMIN_PASSWORD ?? '').trim()
-  if (!expected || (password ?? '').trim() !== expected) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!expected) {
+    return NextResponse.json({ error: 'Not configured.' }, { status: 401 })
+  }
+  if ((password ?? '').trim() !== expected) {
+    return NextResponse.json({ error: 'Wrong password.' }, { status: 401 })
   }
 
   try {
