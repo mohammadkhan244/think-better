@@ -4,7 +4,8 @@ import { kv } from '@vercel/kv'
 export async function POST(req: NextRequest) {
   const { password } = await req.json()
 
-  if (password !== process.env.ADMIN_PASSWORD) {
+  const expected = (process.env.ADMIN_PASSWORD ?? '').trim()
+  if (!expected || (password ?? '').trim() !== expected) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
